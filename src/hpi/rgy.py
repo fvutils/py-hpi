@@ -138,6 +138,7 @@ class import_task(tf_decl):
 class export_task(tf_decl):
     
     def __init__(self, tinfo : str = ""):
+        print("export_task_init")
         self.tinfo = tinfo
         
     def __call__(self, func):
@@ -161,6 +162,7 @@ class export_task(tf_decl):
                 'i',
                 fi.co_varnames[1:fi.co_argcount],
                 self.tinfo)
+            print("Add export " + func.__name__ + " to bfm " + bfm_name)
             info.tf_list.append(tf)
             
             def export_task_w(self,*args):

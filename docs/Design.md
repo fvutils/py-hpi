@@ -41,4 +41,7 @@ simulator.
 - command-line arguments
 
 
-
+# TODO
+- Handle cases where the user doesn't supply arguments to @import_tas
+  - https://stackoverflow.com/questions/7492068/python-class-decorator-arguments
+  

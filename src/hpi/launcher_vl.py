@@ -40,7 +40,9 @@ int main(int argc, char **argv) {
     // TODO: support a callback to signal activity (?)
     pyhpi_init();
     
-    // TODO: provide a way for the Python bench to advance simulation
+    // TODO: register launcher namespace methods to use for
+    // - getting simulation time
+    // - yielding to the simulation
     
     Py_Initialize();
    
@@ -53,7 +55,7 @@ int main(int argc, char **argv) {
 
     fprintf(stdout, "--> eval\\n");
     fflush(stdout);   
-    for (int i=0; i<10; i++) { 
+    for (int i=0; i<10000000; i++) { 
         prv_top->clk = 0;
         prv_top->eval();
         prv_top->clk = 1;
