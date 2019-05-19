@@ -51,6 +51,8 @@ class tf_decl():
         self.is_task = is_task
         self.fname = fname
         self.rtype = rtype
+        self.bfm = None
+        self.module = None
         self.params = []
 
         si = 0        
@@ -75,6 +77,12 @@ class tf_decl():
                 param_type = "<unknown>"
             self.params.append(tf_param(param_name, base_type))
 
+    def tf_name(self):
+        if self.bfm == None:
+            return self.fname
+        else:
+            return self.bfm.tname + "_" + self.fname
+        
 # An import task decorator is specified on a method that will
 # be called by the HDL environment
 class import_task(tf_decl):
@@ -84,6 +92,7 @@ class import_task(tf_decl):
     
     def __call__(self, func):
         fullname = func.__qualname__
+        
         
         fi = func.__code__
         
@@ -95,20 +104,28 @@ class import_task(tf_decl):
         
         if dot_idx != -1:
             bfm_name = fullname[:dot_idx]
-#            api_name = fullname[:dot_idx] + "_" + func.__name__
             info = get_bfm_info(bfm_name)
             tf = tf_decl(
                 True,
                 True,
-                bfm_name + "_" + func.__name__,
+                func.__name__,
                 'i',
                 fi.co_varnames[1:fi.co_argcount],
                 self.tinfo)
             info.tf_list.append(tf)
+            tf.bfm = info
         else:
-            raise Exception("Cannot declare global method an import task")
-            api_name = func.__name__
-            
+            tf = tf_decl(
+                True,
+                False,
+                func.__name__,
+                'i',
+                fi.co_varnames[0:fi.co_argcount],
+                self.tinfo)
+            tf.module = func.__module__
+            tf_global_list.append(tf)
+
+        print("func=" + str(func))            
         return func
 
 # An export_task decorator is specified on a task that will
