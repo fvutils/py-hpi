@@ -18,9 +18,48 @@ launcher = '''
 #include <vector>
 #include <string>
 extern "C" int pyhpi_init();
+extern "C" void pyhpi_launcher_init();
 
 static std::vector<std::string>        prv_args;
 static V${top}                        *prv_top = 0;
+static bool                            prv_initialized = false;
+
+// Initialization function called before the first BFM registers
+void pyhpi_launcher_init() {
+    if (prv_initialized) {
+        return;
+    }
+    
+    fprintf(stdout, "TODO: pyhpi_launcher_init()\\n");
+    
+    // Register the HPI module with Python
+    // TODO: support a callback to signal activity (?)
+    pyhpi_init();
+    
+    // TODO: register launcher namespace methods to use for
+    // - getting simulation time
+    // - yielding to the simulation
+    
+    Py_Initialize();
+   
+    // TODO: determine modules to load
+    PyObject *my_tb = PyImport_ImportModule("my_tb");
+    
+    // TODO: perform some sort of initialization to ensure
+    // BFMS are registered before running the testbench
+    PyObject *hpi = PyImport_ImportModule("hpi");
+    if (!hpi) {
+        fprintf(stdout, "Error: failed to import 'hpi' package\\n");
+        return;
+    }
+
+    // TOOD: set a delta-delay callback from which to kick off
+    // the testbench
+    
+    // TODO: determine entry point to run
+    
+    prv_initialized = true;
+}
 
 // TODO: advance-time function
 
@@ -36,20 +75,6 @@ int main(int argc, char **argv) {
         prv_args.push_back(argv[i]);
     }
 
-    // Register the HPI module with Python
-    // TODO: support a callback to signal activity (?)
-    pyhpi_init();
-    
-    // TODO: register launcher namespace methods to use for
-    // - getting simulation time
-    // - yielding to the simulation
-    
-    Py_Initialize();
-   
-    // TODO: determine modules to load
-
-    // TODO: determine entry point to run
-    
     // Create top-level module
     prv_top = new V${top}();
 

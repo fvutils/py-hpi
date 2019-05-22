@@ -14,7 +14,9 @@ int count = 0;
 
 always @(posedge clk) begin
   count <= count + 1;
-  run_my_tb(count);
+  if ((count%10) == 0) begin
+    run_my_tb(count);
+  end
 end
 
 endmodule

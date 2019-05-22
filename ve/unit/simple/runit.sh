@@ -26,7 +26,7 @@ if test $? -ne 0; then exit 1; fi
 make -C obj_dir -f Vtop.mk
 if test $? -ne 0; then exit 1; fi
 
-./obj_dir/Vtop
+time ./obj_dir/Vtop
 if test $? -ne 0; then exit 1; fi
 
 #g++ -o foo ./obj_dir/Vtop__ALL.a `python3-config --ldflags`

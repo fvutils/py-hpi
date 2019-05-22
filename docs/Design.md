@@ -44,4 +44,16 @@ simulator.
 # TODO
 - Handle cases where the user doesn't supply arguments to @import_tas
   - https://stackoverflow.com/questions/7492068/python-class-decorator-arguments
-  
+- Have the user specify an entry-point to the launcher
+  - Without an entry point, registration happens after the first BFM tries to initialize
+  - Need to consider differences in environment to ensure that 
+  - Need to consider a path forward to UVM to ensure that UVM behaves as expected
+    - Possibly, we'll always want the user to provide the main hook, since this
+      causes the user to import all packages that they need
+    
+- Specify the API the wrapper can expect to be provided by the launcher.
+  - Maybe just pyhpi_launcher_init()
+  - Actually, might want to redirect the 'init' hook back to the launcher
+  - In some cases, we'll need to detect initialization based on the BFMs initializing
+    - Example: In a DPI environment, having the user explicitly call 'init' isn't needed
+    

@@ -1,3 +1,8 @@
+#****************************************************************************
+#* gen_dpi_if.py
+#*
+#* Code to generate the DPI wrapper interface
+#****************************************************************************
 '''
 Created on May 19, 2019
 
@@ -10,14 +15,16 @@ import os
 from hpi.rgy import bfm, tf_param
 from hpi.rgy import tf_decl
 from string import Template
+from hpi.bfm_info import bfm_info
 
 pyhpi_dpi_template = '''
 /****************************************************************************
- * ${filename}.c
+ * ${filename}
  *
  * Note: This file is generated. Do Not Edit
  *
- * Provides a DPI interface between SystemVerilog and Python
+ * Provides a DPI interface between SystemVerilog and Python. 
+ * Generated using the command: ${command}
  ****************************************************************************/
 #include <stdint.h>
 #include "Python.h"
@@ -30,7 +37,12 @@ ${dpi_prototypes}
 
 // Prototype for initialization function
 int pyhpi_init(void);
-int pyhpi_register_bfm(const char *tname, const char *iname);
+
+// Initialization function for the launcher. Called before the first BFM
+// is registered
+int pyhpi_launcher_init(void);
+
+static int pyhpi_register_bfm(const char *tname, const char *iname);
 
 // DPI functions
 void *svGetScope(void);
@@ -43,6 +55,7 @@ void svSetScope(void *);
 static void **prv_scope_list   = 0;
 static int prv_scope_list_idx = 0;
 static int prv_scope_list_len = 0;
+static int prv_initialized = 0;
 
 // TODO: need to import hpi module
 
@@ -85,8 +98,14 @@ static PyObject *PyInit_hpi_e(void) {
     return PyModule_Create(&hpi_e);
 }
 
-int pyhpi_register_bfm(const char *tname, const char *iname) {
+static int pyhpi_register_bfm(const char *tname, const char *iname) {
+    PyObject *hpi, *reg_func;
     int ret = 0;
+    
+    if (!prv_initialized) {
+        pyhpi_launcher_init();
+        prv_initialized = 1;
+    }
   
     if (prv_scope_list_idx >= prv_scope_list_len) {
         void *old = prv_scope_list;
@@ -99,7 +118,15 @@ int pyhpi_register_bfm(const char *tname, const char *iname) {
     prv_scope_list[prv_scope_list_idx] = svGetScope();
     prv_scope_list_idx++;
 
-    // TODO: call Python side
+    // Call Python side to create and register the BFM instance
+    if (!(hpi = PyImport_ImportModule("hpi"))) {
+        fprintf(stdout, "Error: failed to import module 'hpi'\\n");
+        return -1;
+    }
+    reg_func = PyObject_GetAttrString(hpi, "register_bfm");
+    PyObject_CallFunctionObjArgs(reg_func, 
+        PyUnicode_FromString(tname),
+        PyUnicode_FromString(iname), 0);
     
     return ret;
 }
@@ -150,9 +177,19 @@ def gen_c_ret_type(t):
 
 def gen_dpi_prototype(tf : tf_decl):
     ret = gen_c_ret_type(tf.rtype)
-    
-    ret += tf.tf_name() + "(" + gen_c_paramlist(tf.params) + ");\n"
+
+    if tf.is_imp and tf.bfm != None:
+        if len(tf.params) == 0:
+            ret += tf.tf_name() + "(int id);\n"
+        else:
+            ret += tf.tf_name() + "(int id, " + gen_c_paramlist(tf.params) + ");\n"
+    else:
+        ret += tf.tf_name() + "(" + gen_c_paramlist(tf.params) + ");\n"
+        
     return ret
+
+def gen_register_bfm_prototype(bfm_name : str):
+    return "int " + bfm_name + "_register(const char *iname);\n"
 
 def gen_dpi_prototypes():
     ret = ""
@@ -164,6 +201,7 @@ def gen_dpi_prototypes():
     # Now, generate BFM-specific methods
     for bfm_name in hpi.rgy.bfm_type_map.keys():
         info = hpi.rgy.bfm_type_map[bfm_name]
+        ret += gen_register_bfm_prototype(bfm_name)
         for tf in info.tf_list:
             ret += gen_dpi_prototype(tf)
         
@@ -237,12 +275,29 @@ def gen_dpi_global_tf_impl(tf : tf_decl):
     
 def gen_dpi_bfm_imp_tf_impl(tf : tf_decl):
     ret = gen_c_ret_type(tf.rtype)
-    
-    ret += tf.tf_name() + "(" + gen_c_paramlist(tf.params) + ") {\n"
+   
+    if len(tf.params) != 0:
+        ret += tf.tf_name() + "(int id, " + gen_c_paramlist(tf.params) + ") {\n"
+    else:
+        ret += tf.tf_name() + "(int id) {\n"
+        
+    ret += "    PyObject *hpi = PyImport_ImportModule(\"hpi\");\n";
+    ret += "    PyObject *bfm_list = PyObject_GetAttrString(hpi, \"bfm_list\");\n"
+    ret += "    PyObject *bfm = PyList_GetItem(bfm_list, id);\n"
+    ret += "    // TODO: pass arguments\n"
+    ret += "    PyObject_CallMethodObjArgs(bfm, PyUnicode_FromString(\"" + tf.fname + "\"), ";
+    ret += "0);\n"
+    ret += "    Py_DECREF(hpi);\n";
     
     # TODO: call Python side
     ret += "}\n"
     
+    return ret
+
+def gen_dpi_bfm_register_impl(bfm : bfm_info):
+    ret = "int " + bfm.tname + "_register(const char *iname) {\n"
+    ret += "    return pyhpi_register_bfm(\"" + bfm.tname + "\", iname);\n";
+    ret += "}\n"
     return ret
 
 def gen_dpi_declare_param_var(p : tf_param):
@@ -309,9 +364,9 @@ def gen_dpi_tf_impl():
     # Now, generate BFM-specific methods
     for bfm_name in hpi.rgy.bfm_type_map.keys():
         info = hpi.rgy.bfm_type_map[bfm_name]
+        ret += gen_dpi_bfm_register_impl(info)
         for tf in info.tf_list:
-            if tf.is_imp == False:
-                ret += gen_dpi_bfm_tf_impl(tf)
+            ret += gen_dpi_bfm_tf_impl(tf)
 
     return ret
     
@@ -324,6 +379,7 @@ def gen_dpi(args):
     template_params['dpi_prototypes'] = gen_dpi_prototypes()
     template_params['hpi_method_table_entries'] = gen_hpi_method_table_entries()
     template_params['dpi_tf_impl'] = gen_dpi_tf_impl()
+    template_params['command'] = "TODO"
     
     fh = open(args.o, "w")
     template = Template(pyhpi_dpi_template)
