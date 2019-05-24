@@ -20,9 +20,9 @@ launcher = '''
 extern "C" int pyhpi_init();
 extern "C" void pyhpi_launcher_init();
 
-static std::vector<std::string>        prv_args;
 static V${top}                        *prv_top = 0;
 static bool                            prv_initialized = false;
+static PyObject                        *prv_args;
 
 // Initialization function called before the first BFM registers
 void pyhpi_launcher_init() {
@@ -53,10 +53,25 @@ void pyhpi_launcher_init() {
         return;
     }
 
+    // TODO: check return
+    PyObject *ret;
+    
+    ret = PyObject_CallFunctionObjArgs(
+        PyObject_GetAttrString(hpi, "tb_init"),
+        prv_args, 0);
+        
+    if (!ret) {
+        fprintf(stdout, "Error calling tb_init\\n");
+    }
+
     // TOOD: set a delta-delay callback from which to kick off
     // the testbench
-    
-    // TODO: determine entry point to run
+    ret = PyObject_CallFunctionObjArgs(
+        PyObject_GetAttrString(hpi, "tb_main"), 0);
+    if (!ret) {
+        fprintf(stdout, "Error calling tb_main\\n");
+        PyErr_Print();
+    }
     
     prv_initialized = true;
 }
@@ -71,8 +86,9 @@ int main(int argc, char **argv) {
     fprintf(stdout, "Hello from launcher for Verilator ${top}\\n");
 
     // Capture all arguments
+    prv_args = PyList_New(0);
     for (int i=1; i<argc; i++) {
-        prv_args.push_back(argv[i]);
+        PyList_Append(prv_args, PyUnicode_FromString(argv[i]));
     }
 
     // Create top-level module

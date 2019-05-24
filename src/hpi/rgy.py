@@ -15,6 +15,11 @@ bfm_list = []
 bfm_type_map = {}
 bfm_inst_map = {}
 tf_global_list = []
+entry_list = {}
+
+def entry(ent):
+    print("Register entry \"" + ent.__name__ + "\"")
+    entry_list[ent.__name__] = ent
 
 def get_bfm_info(tname : str) -> bfm_info:
     if tname in bfm_type_map.keys():
