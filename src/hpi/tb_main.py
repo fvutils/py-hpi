@@ -4,6 +4,8 @@ Created on May 22, 2019
 @author: ballance
 '''
 from hpi.rgy import entry_list
+from hpi.scheduler import create_root_thread
+from hpi.scheduler import thread_yield
 
 class plusarg:
     def __init__(self, p, v):
@@ -56,9 +58,17 @@ def tb_main():
     else:
         raise Exception("Multiple +hpi.entry options specified")
 
-    print("--> entry") 
-    entry()
-    print("<-- entry") 
+    # TODO: should launch entry() in a new hpi thread
+    create_root_thread(entry)
+    
+    # Now, wait until any launched threads are dormant
+    for i in range(1000):
+        if thread_yield() == False:
+            print("Stable: " + str(i))
+            break
+            
+    # TODO: should check to ensure that the hpi thread suspends in a 
+    # reasonable amount of time
 
 def tb_init(argv):
     global prv_plusargs

@@ -10,3 +10,10 @@ from hpi.rgy import bfm_list
 from hpi.rgy import entry
 from hpi.tb_main import tb_main
 from hpi.tb_main import tb_init
+from hpi.scheduler import SimThread
+from hpi.scheduler import thread_create
+from hpi.scheduler import thread_yield
+from hpi.scheduler import fork
+from hpi.scheduler import branch
+from hpi.scheduler import semaphore
+

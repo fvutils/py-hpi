@@ -14,6 +14,12 @@ int count = 0;
 wire[7:0]	data;
 wire		req;
 wire		ack;
+reg		req_r = 0;
+
+always @(posedge clk)
+	req_r <= req;
+
+assign ack = req_r;
 
 simple_bfm u_bfm(.clk(clk), .req(req), .ack(ack), .data(data));
 
