@@ -31,9 +31,7 @@ class semaphore:
         self.count += count
         
         if self.thread != None:
-            print("--> thread.unblock")
             self.thread.unblock()
-            print("<-- thread.unblock")
     
     def get(self, count=1):
         global prv_active_thread
@@ -41,7 +39,6 @@ class semaphore:
 
         prv_active_mutex.acquire()        
         self.thread = prv_active_thread
-        print("semaphore.get: thread=" + str(self.thread))
         prv_active_mutex.release()
         
         while self.count < count:
@@ -221,6 +218,16 @@ def thread_yield():
     
     return yielded
 
+def int_thread_yield():
+    print("--> int_thread_yield")
+    
+    for i in range(1000):
+        if thread_yield() == False:
+            print("int_thread_yield: quit after " + str(i))
+            break
+    
+    print("<-- int_thread_yield")
+    
 def thread_block():
     pass
 

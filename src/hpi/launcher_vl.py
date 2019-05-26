@@ -23,6 +23,7 @@ extern "C" void pyhpi_launcher_init();
 static V${top}                        *prv_top = 0;
 static bool                            prv_initialized = false;
 static PyObject                        *prv_args;
+static PyObject                        *prv_hpi;
 
 // Initialization function called before the first BFM registers
 void pyhpi_launcher_init() {
@@ -43,12 +44,12 @@ void pyhpi_launcher_init() {
     Py_Initialize();
    
     // TODO: determine modules to load
-    PyObject *my_tb = PyImport_ImportModule("my_tb");
+//    PyObject *my_tb = PyImport_ImportModule("my_tb");
     
     // TODO: perform some sort of initialization to ensure
     // BFMS are registered before running the testbench
-    PyObject *hpi = PyImport_ImportModule("hpi");
-    if (!hpi) {
+    prv_hpi = PyImport_ImportModule("hpi");
+    if (!prv_hpi) {
         fprintf(stdout, "Error: failed to import 'hpi' package\\n");
         return;
     }
@@ -57,21 +58,13 @@ void pyhpi_launcher_init() {
     PyObject *ret;
     
     ret = PyObject_CallFunctionObjArgs(
-        PyObject_GetAttrString(hpi, "tb_init"),
+        PyObject_GetAttrString(prv_hpi, "tb_init"),
         prv_args, 0);
         
     if (!ret) {
         fprintf(stdout, "Error calling tb_init\\n");
     }
 
-    // TOOD: set a delta-delay callback from which to kick off
-    // the testbench
-    ret = PyObject_CallFunctionObjArgs(
-        PyObject_GetAttrString(hpi, "tb_main"), 0);
-    if (!ret) {
-        fprintf(stdout, "Error calling tb_main\\n");
-        PyErr_Print();
-    }
     
     prv_initialized = true;
 }
@@ -83,6 +76,7 @@ void pyhpi_launcher_init() {
 // TODO: clocking scheme
 
 int main(int argc, char **argv) {
+    bool started_tb = false;
     fprintf(stdout, "Hello from launcher for Verilator ${top}\\n");
 
     // Capture all arguments
@@ -93,10 +87,21 @@ int main(int argc, char **argv) {
 
     // Create top-level module
     prv_top = new V${top}();
+    
+    prv_top->clk = 0;
+    prv_top->eval();
+    
+    // Launch the testbench main code
+    PyObject *ret = PyObject_CallFunctionObjArgs(
+        PyObject_GetAttrString(prv_hpi, "tb_main"), 0);
+    if (!ret) {
+        fprintf(stdout, "Error calling tb_main\\n");
+        PyErr_Print();
+    }
 
     fprintf(stdout, "--> eval\\n");
     fflush(stdout);   
-    for (int i=0; i<10000000; i++) { 
+    for (int i=0; i<100; i++) { 
         prv_top->clk = 0;
         prv_top->eval();
         prv_top->clk = 1;

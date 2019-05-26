@@ -15,7 +15,7 @@ if test $? -ne 0; then exit 1; fi
 CFLAGS="${CFLAGS} `python3-config --cflags`"
 LDFLAGS="${LDFLAGS} `python3-config --ldflags`"
 
-verilator --cc --exe \
+verilator --cc --exe -Wno-fatal \
 	top.sv \
 	simple_bfm.sv \
 	launcher_vl.cpp pyhpi_dpi.c \
@@ -39,5 +39,5 @@ if test $? -ne 0; then exit 1; fi
 #if test $? -ne 0; then exit 1; fi
 
 # Remove generated files
-rm *.cpp *.c
-rm -rf obj_dir __pycache__
+#rm *.cpp *.c
+#rm -rf obj_dir __pycache__

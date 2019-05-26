@@ -16,4 +16,4 @@ from hpi.scheduler import thread_yield
 from hpi.scheduler import fork
 from hpi.scheduler import branch
 from hpi.scheduler import semaphore
-
+from hpi.scheduler import int_thread_yield

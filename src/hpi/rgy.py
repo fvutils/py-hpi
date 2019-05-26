@@ -4,7 +4,6 @@
 #* BFM registration decorators and methods
 #****************************************************************************
 from hpi.bfm_info import bfm_info
-from lib2to3.fixer_util import is_import
 
 try:
     import hpi_e
@@ -130,7 +129,6 @@ class import_task(tf_decl):
             tf.module = func.__module__
             tf_global_list.append(tf)
 
-        print("func=" + str(func))            
         return func
 
 # An export_task decorator is specified on a task that will
@@ -158,7 +156,7 @@ class export_task(tf_decl):
         dot_idx = fullname.find(".")
         
         if dot_idx != -1:
-            bfm_name = fullname[:dot_idx];
+            bfm_name = fullname[:dot_idx]
             info = get_bfm_info(bfm_name)
             tf = tf_decl(
                 False,
@@ -171,8 +169,12 @@ class export_task(tf_decl):
             info.tf_list.append(tf)
             
             def export_task_w(self,*args):
+                params = [self.ctxt]
+                for a in args:
+                    params.append(a)
                 # TODO: set appropriate context
-                eval("hpi_e." + api_name + "(*args)")
+                eval("hpi_e." + tf.tf_name() + "(*params)")
+                
             return export_task_w
         else:
             raise Exception("Cannot declare global method an export task")
@@ -217,20 +219,19 @@ class import_func(tf_decl):
 
         return func
     
-def register_bfm(tname : str, iname : str):
+def register_bfm(tname : str, iname : str, id : int):
     if tname not in bfm_type_map.keys():
         print("Error: BFM type \"" + tname + "\" is not registered")
         return -1
     
-    ret : int = len(bfm_list)
     info = bfm_type_map[tname]
     inst = info.cls()
     
     inst.iname = iname
-    inst.ctxt = 0; # TODO: 
+    inst.ctxt = id; # Capture the context ID
     
     bfm_inst_map[iname] = inst
     bfm_list.append(inst)
     
-    return ret
+    return id
 

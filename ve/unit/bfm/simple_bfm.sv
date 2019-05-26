@@ -1,17 +1,22 @@
 
 module simple_bfm(
 	input		clk,
-	output		req,
-	output[7:0]	data,
+	output reg	req_o,
+	output reg [7:0] data,
 	input		ack);
 
 	bit req_r = 0;
+	bit[7:0] data_r = 0;
 
-	assign req = req_r;
+	always @(posedge clk) begin
+		req_o <= req_r;
+		data <= data_r;
+	end
 
 	task simple_bfm_req(int data);
 		$display("req");
 		req_r = 1;
+		data_r = data;
 	endtask
 	export "DPI-C" task simple_bfm_req;
 
@@ -20,11 +25,11 @@ module simple_bfm(
 	import "DPI-C" context function int simple_bfm_register(string path);
 
 	always @(posedge clk) begin
-		if (req) begin
+		if (ack) begin
 			$display("--> ack");
 			simple_bfm_ack(m_id);
 			$display("<-- ack");
-			req = 0;
+			req_r = 0;
 		end
 	end
 

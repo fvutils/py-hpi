@@ -116,6 +116,7 @@ static int pyhpi_register_bfm(const char *tname, const char *iname) {
         }
     }
     prv_scope_list[prv_scope_list_idx] = svGetScope();
+    ret = prv_scope_list_idx;
     prv_scope_list_idx++;
 
     // Call Python side to create and register the BFM instance
@@ -126,7 +127,9 @@ static int pyhpi_register_bfm(const char *tname, const char *iname) {
     reg_func = PyObject_GetAttrString(hpi, "register_bfm");
     PyObject_CallFunctionObjArgs(reg_func, 
         PyUnicode_FromString(tname),
-        PyUnicode_FromString(iname), 0);
+        PyUnicode_FromString(iname), 
+        PyLong_FromLong(ret),
+        0);
     
     return ret;
 }
@@ -284,9 +287,11 @@ def gen_dpi_bfm_imp_tf_impl(tf : tf_decl):
     ret += "    PyObject *hpi = PyImport_ImportModule(\"hpi\");\n";
     ret += "    PyObject *bfm_list = PyObject_GetAttrString(hpi, \"bfm_list\");\n"
     ret += "    PyObject *bfm = PyList_GetItem(bfm_list, id);\n"
+    ret += "    PyObject *yield = PyObject_GetAttrString(hpi, \"int_thread_yield\");\n"
     ret += "    // TODO: pass arguments\n"
     ret += "    PyObject_CallMethodObjArgs(bfm, PyUnicode_FromString(\"" + tf.fname + "\"), ";
     ret += "0);\n"
+    ret += "    PyObject_CallFunctionObjArgs(yield, 0);\n"
     ret += "    Py_DECREF(hpi);\n";
     
     # TODO: call Python side
@@ -307,15 +312,16 @@ def gen_dpi_declare_param_var(p : tf_param):
         return typemap[p.ptype] + " " + p.pname + ";\n"
     
 def gen_py_argparse(params : [tf_param]):
-    ret = "    if (!PyArg_ParseTuple(args, \""
+    ret = "    if (!PyArg_ParseTuple(args, \"i"
     
     for p in params:
         ret += p.ptype[0]
         
     ret += "\", "
-    
+
+    ret += "&id, "    
     for p in params:
-        ret += p.pname + ", "
+        ret += "&" + p.pname + ", "
    
     # Trim the last comma
     ret = ret[:len(ret)-2]
@@ -327,14 +333,25 @@ def gen_py_argparse(params : [tf_param]):
 
 def gen_dpi_bfm_exp_tf_impl(tf : tf_decl):
     ret = "PyObject *" + tf.tf_name() + "_py(PyObject *self, PyObject *args) {\n"
+    ret += "    unsigned int id;\n"
+    ret += "    fprintf(stdout, \"--> entry to " + tf.tf_name() + "\\n\");\n"
+    ret += "    fflush(stdout);\n"
     
     if len(tf.params) != 0:
         for p in tf.params:
             ret += "    " + gen_dpi_declare_param_var(p)
 
+        ret += "    fprintf(stdout, \"--> getting args to " + tf.tf_name() + "\\n\");\n";
+        ret += "    fflush(stdout);\n"
         ret += gen_py_argparse(tf.params)
+        ret += "    fprintf(stdout, \"--> getting args to " + tf.tf_name() + "\\n\");\n";
+        ret += "    fflush(stdout);\n"
 
+    # Set the DPI context
+    ret += "    svSetScope(prv_scope_list[id]);\n"
     # Finally, call the actual export
+    ret += "    fprintf(stdout, \"--> calling " + tf.tf_name() + "\\n\");\n";
+    ret += "    fflush(stdout);\n"
     if len(tf.params) == 0:
         ret += "    " + tf.tf_name() + "();\n"
     else:
@@ -344,6 +361,8 @@ def gen_dpi_bfm_exp_tf_impl(tf : tf_decl):
         ret = ret[:len(ret)-2]
         ret += ");\n"
      
+    ret += "    fprintf(stdout, \"<-- calling " + tf.tf_name() + "\\n\");\n";
+    ret += "    fflush(stdout);\n"
     ret += "    return PyLong_FromLong(0);\n"
     ret += "}\n"
     return ret
