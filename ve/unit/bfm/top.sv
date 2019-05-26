@@ -1,6 +1,17 @@
 
 module top(input clk);
 
+`ifdef HAVE_HDL_CLOCKGEN
+reg clk_r = 0;
+initial begin
+  forever begin
+    #10ns;
+    clk_r <= ~clk_r;
+  end
+end
+assign clk = clk_r;
+`endif
+
 task foo();
 endtask
 

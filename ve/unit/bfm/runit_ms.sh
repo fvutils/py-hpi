@@ -19,12 +19,12 @@ LDFLAGS="${LDFLAGS} `python3-config --ldflags`"
 
 
 vlib work
-vlog -sv simple_bfm.sv top.sv pyhpi_sv_pkg.sv
+vlog -sv +define+HAVE_HDL_CLOCKGEN simple_bfm.sv top.sv pyhpi_sv.sv
 if test $? -ne 0; then exit 1; fi
 vlog -ccflags "${CFLAGS}" pyhpi_sv_dpi.c pyhpi_dpi.c
 if test $? -ne 0; then exit 1; fi
 
-vsim -batch -do "run -a; quit -f" top pyhpi_sv_pkg -ldflags "${LDFLAGS}" \
+time vsim -batch -do "run 10us; quit -f" top pyhpi_sv -ldflags "${LDFLAGS}" \
   +hpi.entry=my_tb.run_my_tb
 exit 0
 

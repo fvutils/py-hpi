@@ -37,7 +37,7 @@ def gen_launcher_sv(args):
     fh.write(launcher_sv.dpi_c)
     fh.close()
     
-    fh = open(os.path.join(args.outdir, "pyhpi_sv_pkg.sv"), "w")
+    fh = open(os.path.join(args.outdir, "pyhpi_sv.sv"), "w")
     fh.write(launcher_sv.dpi_sv)
     fh.close()
     

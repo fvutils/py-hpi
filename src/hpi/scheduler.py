@@ -57,17 +57,17 @@ class ThreadGroup:
             t.add_join_listener(self)
             
     def join_all(self):
-        print("--> join_all.get()")
+#        print("--> join_all.get()")
         self.sem.get(len(self.threads))
-        print("<-- join_all.get()")
+#        print("<-- join_all.get()")
         
     def join_any(self):
         self.sem.get(1);
        
     def thread_ended(self, t):
-        print("--> thread_ended")
+#        print("--> thread_ended")
         self.sem.put(1);
-        print("<-- thread_ended")
+#        print("<-- thread_ended")
         
 class SimThread(threading.Thread,SimThreadData):
     
@@ -90,44 +90,44 @@ class SimThread(threading.Thread,SimThreadData):
         self.running = True
         self.alive = True
         
-        print("--> run")
+#        print("--> run")
         prv_active_mutex.acquire()
         prv_active_thread_list.append(self)
         prv_active_thread_start_cond.notify()
         prv_active_mutex.release()
    
-        print("--> Wait to run")
+#        print("--> Wait to run")
         self.thread_yield()
-        print("<-- Wait to run")
+#        print("<-- Wait to run")
         
-        print("--> calling function " + str(self.func))
+#        print("--> calling function " + str(self.func))
         self.func()
-        print("<-- calling function")
-        print("<-- run")
+#        print("<-- calling function")
+#        print("<-- run")
         
-        print("--> notify listeners")
+#        print("--> notify listeners")
         for l in self.join_listeners:
             l.thread_ended(self)
-        print("<-- notify listeners")
+#        print("<-- notify listeners")
         
         # TODO: cleanup after thread
         # Note: we know we're the active thread 
         # because we're running
-        print("--> final notification")
+#        print("--> final notification")
         self.running = False
         self.alive = False
         self.suspend_mutex.acquire()
         self.suspend_cond.notify()
         self.suspend_mutex.release()
-        print("<-- final notification")
+#        print("<-- final notification")
         
-        print("Note: thread complete " + str(self))
+#        print("Note: thread complete " + str(self))
 
     def add_join_listener(self, l):
         self.join_listeners.append(l)
         
     def block(self):
-        print("--> block " + str(self))
+#        print("--> block " + str(self))
         self.running = False
         self.suspend_mutex.acquire()
         self.suspend_cond.notify()
@@ -137,11 +137,11 @@ class SimThread(threading.Thread,SimThreadData):
         self.run_cond.wait()
         self.run_mutex.release()
         
-        print("<-- block " + str(self))
+#        print("<-- block " + str(self))
         
 
     def unblock(self):
-        print("--> unblock " + str(self))
+#        print("--> unblock " + str(self))
         global prv_active_thread_list
         global prv_active_mutex
         
@@ -152,7 +152,7 @@ class SimThread(threading.Thread,SimThreadData):
             prv_active_thread_list.append(self)
             prv_active_mutex.release()
             
-        print("<-- unblock " + str(self))
+#        print("<-- unblock " + str(self))
         
     def thread_run(self):
         global prv_active_thread
@@ -161,7 +161,7 @@ class SimThread(threading.Thread,SimThreadData):
         prv_active_thread = self
         prv_active_mutex.release()
         
-        print("prv_active_thread: " + str(prv_active_thread))
+#        print("prv_active_thread: " + str(prv_active_thread))
         
         self.run_mutex.acquire()
         self.run_cond.notify()
@@ -175,11 +175,11 @@ class SimThread(threading.Thread,SimThreadData):
         return self.running
 
     def thread_yield(self):
-        print("--> thread_yield")
+#        print("--> thread_yield")
         self.run_mutex.acquire()
         self.run_cond.wait()
         self.run_mutex.release()
-        print("<-- thread_yield")
+#        print("<-- thread_yield")
         
 def thread_active():
     return prv_active_thread
@@ -190,7 +190,7 @@ def thread_yield():
     global prv_active_thread_list
     yielded = False
     
-    print("thread_yield: len=" + str(len(prv_active_thread_list)))
+#    print("thread_yield: len=" + str(len(prv_active_thread_list)))
     
     if len(prv_active_thread_list) != 0:
             
@@ -199,16 +199,16 @@ def thread_yield():
             
         prv_active_thread = prv_active_thread_list.pop(0);
         
-        print("active thread: " + str(prv_active_thread))
+#        print("active thread: " + str(prv_active_thread))
         prv_active_mutex.release()
 
-        print("--> thread_run")        
+#        print("--> thread_run")        
         running = prv_active_thread.thread_run()
-        print("<-- thread_run")        
+#        print("<-- thread_run")        
       
         if running == True:
             # Put thread back on the running list
-            print("-- is_running")
+#            print("-- is_running")
             prv_active_thread_list.append(prv_active_thread)
             
         yielded = True
@@ -219,14 +219,14 @@ def thread_yield():
     return yielded
 
 def int_thread_yield():
-    print("--> int_thread_yield")
+#    print("--> int_thread_yield")
     
     for i in range(1000):
         if thread_yield() == False:
-            print("int_thread_yield: quit after " + str(i))
+#            print("int_thread_yield: quit after " + str(i))
             break
     
-    print("<-- int_thread_yield")
+#    print("<-- int_thread_yield")
     
 def thread_block():
     pass
@@ -243,9 +243,9 @@ def thread_create(func):
     
     t = SimThread(func)
     t.start()
-    print("--> wait for thread to start")
+#    print("--> wait for thread to start")
     prv_active_thread_start_cond.wait()
-    print("<-- wait for thread to start")
+#    print("<-- wait for thread to start")
     prv_active_mutex.release()
     
     return t
@@ -255,9 +255,9 @@ def create_root_thread(func):
     # TODO: handle startup synchronization
     prv_active_mutex.acquire()
     t.start()
-    print("--> wait for thread to start")
+#    print("--> wait for thread to start")
     prv_active_thread_start_cond.wait()
-    print("<-- wait for thread to start")
+#    print("<-- wait for thread to start")
     prv_active_mutex.release()
     
     return t

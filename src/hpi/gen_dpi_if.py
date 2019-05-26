@@ -293,6 +293,7 @@ def gen_dpi_bfm_imp_tf_impl(tf : tf_decl):
     ret += "0);\n"
     ret += "    PyObject_CallFunctionObjArgs(yield, 0);\n"
     ret += "    Py_DECREF(hpi);\n";
+    ret += "    return 0;\n"
     
     # TODO: call Python side
     ret += "}\n"
@@ -334,24 +335,24 @@ def gen_py_argparse(params : [tf_param]):
 def gen_dpi_bfm_exp_tf_impl(tf : tf_decl):
     ret = "PyObject *" + tf.tf_name() + "_py(PyObject *self, PyObject *args) {\n"
     ret += "    unsigned int id;\n"
-    ret += "    fprintf(stdout, \"--> entry to " + tf.tf_name() + "\\n\");\n"
-    ret += "    fflush(stdout);\n"
+#    ret += "    fprintf(stdout, \"--> entry to " + tf.tf_name() + "\\n\");\n"
+#    ret += "    fflush(stdout);\n"
     
     if len(tf.params) != 0:
         for p in tf.params:
             ret += "    " + gen_dpi_declare_param_var(p)
 
-        ret += "    fprintf(stdout, \"--> getting args to " + tf.tf_name() + "\\n\");\n";
-        ret += "    fflush(stdout);\n"
+#        ret += "    fprintf(stdout, \"--> getting args to " + tf.tf_name() + "\\n\");\n";
+#        ret += "    fflush(stdout);\n"
         ret += gen_py_argparse(tf.params)
-        ret += "    fprintf(stdout, \"--> getting args to " + tf.tf_name() + "\\n\");\n";
-        ret += "    fflush(stdout);\n"
+#        ret += "    fprintf(stdout, \"--> getting args to " + tf.tf_name() + "\\n\");\n";
+#        ret += "    fflush(stdout);\n"
 
     # Set the DPI context
     ret += "    svSetScope(prv_scope_list[id]);\n"
     # Finally, call the actual export
-    ret += "    fprintf(stdout, \"--> calling " + tf.tf_name() + "\\n\");\n";
-    ret += "    fflush(stdout);\n"
+#    ret += "    fprintf(stdout, \"--> calling " + tf.tf_name() + "\\n\");\n";
+#    ret += "    fflush(stdout);\n"
     if len(tf.params) == 0:
         ret += "    " + tf.tf_name() + "();\n"
     else:
@@ -361,8 +362,8 @@ def gen_dpi_bfm_exp_tf_impl(tf : tf_decl):
         ret = ret[:len(ret)-2]
         ret += ");\n"
      
-    ret += "    fprintf(stdout, \"<-- calling " + tf.tf_name() + "\\n\");\n";
-    ret += "    fflush(stdout);\n"
+#    ret += "    fprintf(stdout, \"<-- calling " + tf.tf_name() + "\\n\");\n";
+#    ret += "    fflush(stdout);\n"
     ret += "    return PyLong_FromLong(0);\n"
     ret += "}\n"
     return ret

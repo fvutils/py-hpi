@@ -9,18 +9,17 @@ dummy_sem = hpi.semaphore()
 def thread_func_1():
   print("thread_func_1")
   my_bfm = hpi.rgy.bfm_list[0]
-  my_bfm.xfer(10)
-  my_bfm.xfer(20)
-  my_bfm.xfer(30)
-  my_bfm.xfer(40)
+  for i in range(1000):
+    my_bfm.xfer(i*2)
 
 def thread_func_2():
   print("thread_func_2")
   my_bfm = hpi.rgy.bfm_list[1]
-  my_bfm.xfer(110)
-  my_bfm.xfer(120)
-  my_bfm.xfer(130)
-  my_bfm.xfer(140)
+  for i in range(1000):
+    my_bfm.xfer(i)
+
+def lambda_accept(c):
+  c()
 
 @hpi.entry
 def run_my_tb():

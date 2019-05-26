@@ -14,9 +14,10 @@ module simple_bfm(
 	end
 
 	task simple_bfm_req(int data);
-		$display("req");
+		$display("--> req %m");
 		req_r = 1;
 		data_r = data;
+		$display("<-- req %m");
 	endtask
 	export "DPI-C" task simple_bfm_req;
 
@@ -25,11 +26,14 @@ module simple_bfm(
 	import "DPI-C" context function int simple_bfm_register(string path);
 
 	always @(posedge clk) begin
-		if (ack) begin
-			$display("--> ack");
-			simple_bfm_ack(m_id);
-			$display("<-- ack");
+		if (req_o && ack) begin
+			$display("--> ack %m");
+			// Remember that new requests can 
+			// occur as a side effect of the ack
 			req_r = 0;
+			simple_bfm_ack(m_id);
+			$display("<-- ack %m");
+			req_o <= 0;
 		end
 	end
 

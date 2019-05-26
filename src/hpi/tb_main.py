@@ -29,6 +29,16 @@ def get_plusarg_vals(key):
     else:
         return ret
 
+def root_thread(entry):
+    print("--> Waiting for registration")
+    try:
+        import hpi_l
+        hpi_l.init()
+    except:
+        print("Error: problem loading hpi_l")
+    print("<-- Waiting for registration")
+    
+    
 def tb_main():
     global entry_list
     print("Hello from tb_main")
