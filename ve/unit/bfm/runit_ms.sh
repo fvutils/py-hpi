@@ -6,22 +6,27 @@ export PYTHONPATH=$cwd/../../../src:$PYTHONPATH
 
 ncpu=`cat /proc/cpuinfo | grep processor | wc -l`
 
-python3 -m hpi gen-launcher-vl top
+python3 -m hpi gen-launcher-sv
 if test $? -ne 0; then exit 1; fi
 
 python3 -m hpi -m my_tb gen-dpi
 if test $? -ne 0; then exit 1; fi
 
-CFLAGS="${CFLAGS} `python3-config --cflags`"
+
+CFLAGS="`python3-config --cflags`"
+#CFLAGS="-I/usr/include/python3.6m -I/usr/include/python3.6m"
 LDFLAGS="${LDFLAGS} `python3-config --ldflags`"
 
-verilator --cc --exe -Wno-fatal \
-	top.sv \
-	simple_bfm.sv \
-	launcher_vl.cpp pyhpi_dpi.c \
-  -CFLAGS "${CFLAGS}" -LDFLAGS "${LDFLAGS}"
+
+vlib work
+vlog -sv simple_bfm.sv top.sv pyhpi_sv_pkg.sv
+if test $? -ne 0; then exit 1; fi
+vlog -ccflags "${CFLAGS}" pyhpi_sv_dpi.c pyhpi_dpi.c
 if test $? -ne 0; then exit 1; fi
 
+vsim -batch -do "run -a; quit -f" top pyhpi_sv_pkg -ldflags "${LDFLAGS}" \
+  +hpi.entry=my_tb.run_my_tb
+exit 0
 
 #gcc ${CFLAGS} -c pyhpi_dpi.c
 #if test $? -ne 0; then exit 1; fi
@@ -39,5 +44,5 @@ if test $? -ne 0; then exit 1; fi
 #if test $? -ne 0; then exit 1; fi
 
 # Remove generated files
-#rm *.cpp *.c
-#rm -rf obj_dir __pycache__
+rm *.cpp *.c
+rm -rf obj_dir __pycache__

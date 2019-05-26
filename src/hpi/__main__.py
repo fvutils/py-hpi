@@ -10,6 +10,7 @@ from hpi.rgy import bfm
 from hpi.rgy import tf_decl
 from string import Template
 from hpi import launcher_vl
+from hpi import launcher_sv
 from hpi import gen_dpi_if
 
 def gen_dpi_export_methods():
@@ -30,6 +31,16 @@ def gen_launcher_vl(args):
     fh = open(args.o, "w")
     fh.write(template.substitute(template_params))
     fh.close()
+    
+def gen_launcher_sv(args):
+    fh = open(os.path.join(args.outdir, "pyhpi_sv_dpi.c"), "w")
+    fh.write(launcher_sv.dpi_c)
+    fh.close()
+    
+    fh = open(os.path.join(args.outdir, "pyhpi_sv_pkg.sv"), "w")
+    fh.write(launcher_sv.dpi_sv)
+    fh.close()
+    
     
 def main():
 #    print("main " + str(len(hpi.bfm_list)))
@@ -55,6 +66,13 @@ def main():
     gen_launcher_vl_cmd.add_argument("top",
             help="Specify the top-level module to run")
     gen_launcher_vl_cmd.set_defaults(func=gen_launcher_vl)
+    
+    gen_launcher_sv_cmd = subparsers.add_parser("gen-launcher-sv",
+            help="Generate a launcher for standard SV/DPI simulators")
+    gen_launcher_sv_cmd.add_argument("-outdir", 
+            default=".",
+            help="Specifies the output directory")
+    gen_launcher_sv_cmd.set_defaults(func=gen_launcher_sv)
     
     parser.add_argument("-m", action="append", help="Specifies a module to load")
     
