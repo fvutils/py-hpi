@@ -9,18 +9,38 @@ from hpi.scheduler import thread_yield
 
 class plusarg:
     def __init__(self, p, v):
-        print("p=" + p + " v=" + v)
         self.p = p;
         self.v = v;
         
 prv_argv = []
 prv_plusargs = []
+prv_objection_count = 0
 
+def raise_objection():
+    global prv_objection_count
+    prv_objection_count += 1
+    
+def drop_objection():
+    global prv_objection_count
+    if prv_objection_count >= 1:
+        prv_objection_count -= 1
+        
+    if prv_objection_count == 0:
+        finish()
+
+def finish():
+        try:
+            import hpi_l
+            hpi_l.finish()
+        except:
+            print("Error: failed to call 'hpi_l.finish'")
+            
 def get_plusarg_vals(key):
     global prv_plusargs
     ret = []
     
     for p in prv_plusargs:
+        print("Plusarg: p=" + p.p + " v=" + str(p.v))
         if p.p == key:
             ret.append(p.v)
 
@@ -28,6 +48,20 @@ def get_plusarg_vals(key):
         return None
     else:
         return ret
+
+def get_plusarg(key, dflt=None):
+    ret = None
+    
+    for p in prv_plusargs:
+        if p.p == key:
+            print("key=" + p.p + " val=" + str(p.v))
+            if p.v == None:
+                ret = dflt
+            else:
+                ret = p.v
+            break
+
+    return ret
 
 def root_thread(entry):
     print("--> Waiting for registration")
@@ -47,7 +81,7 @@ def tb_main():
     for e in entry_list.keys():
         print("Entry: " + e)
 
-    entry_l = get_plusarg_vals("+hpi.entry")
+    entry_l = get_plusarg_vals("hpi.entry")
     entry = None
     if entry_l == None:
         if len(entry_list.keys()) == 0:
@@ -76,34 +110,40 @@ def tb_main():
         if thread_yield() == False:
             print("Stable: " + str(i))
             break
-            
+
+    if prv_objection_count == 0:
+        print("Warning: no objections raised by initial threads")
+        finish()
+        
     # TODO: should check to ensure that the hpi thread suspends in a 
     # reasonable amount of time
 
 def tb_init(argv):
     global prv_plusargs
     global prv_argv
+    timeout = 1000000 # 1ms (in ns)
     print("tb_init: " + str(argv))
     
     prv_argv = argv;
     
     for arg in argv:
         if arg.startswith("+"):
-            if arg.find('=') != -1:
+            key = arg[1:]
+            if key.find('=') != -1:
                 prv_plusargs.append(plusarg(
-                    arg[:arg.find('=')],
-                    arg[arg.find('=')+1:]));
+                    key[:key.find('=')],
+                    key[key.find('=')+1:]));
             else:
-                prv_plusargs.append(plusarg(arg, ""))
+                prv_plusargs.append(plusarg(key, None))
 
     for p in prv_plusargs:                
-        if p.p == "+hpi.load":
+        if p.p == "hpi.load":
             print("Loading \"" + p.v + "\"")
             try:
                 __import__(p.v)
             except:
                 print("Error: loading " + p.v)
-        elif p.p == "+hpi.entry":
+        elif p.p == "hpi.entry":
             if p.v.find("."):
                 # Load the module associated with the entry
                 m = p.v[:p.v.find(".")]
@@ -111,5 +151,10 @@ def tb_init(argv):
                     __import__(m)
                 except:
                     print("Error: loading " + m)
-                
+
+    try:
+        import hpi_l
+        hpi_l.set_timeout(timeout)
+    except:
+        print("Error: caught an execption")
 

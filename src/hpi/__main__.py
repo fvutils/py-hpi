@@ -22,15 +22,6 @@ def list_bfms(args):
     for bfm in hpi.rgy.bfm_type_map.keys():
         print("bfm_name: " + str(bfm))
 
-def gen_launcher_vl(args):
-    template = Template(launcher_vl.launcher)
-    
-    template_params = {}
-    template_params['top'] = args.top
-        
-    fh = open(args.o, "w")
-    fh.write(template.substitute(template_params))
-    fh.close()
     
 def gen_launcher_sv(args):
     fh = open(os.path.join(args.outdir, "pyhpi_sv_dpi.c"), "w")
@@ -63,9 +54,18 @@ def main():
     gen_launcher_vl_cmd.add_argument("-o", 
             default="launcher_vl.cpp",
             help="Specifies output file")
+    gen_launcher_vl_cmd.add_argument("--trace",
+            action="store_true",
+            help="Enable VCD tracing from the launcher")
+    gen_launcher_vl_cmd.add_argument("--trace-fst",
+            action="store_true",
+            help="Enable FST tracing from the launcher")
+    gen_launcher_vl_cmd.add_argument("-clk", 
+            action="append",
+            help="Specifies clock to drive")
     gen_launcher_vl_cmd.add_argument("top",
             help="Specify the top-level module to run")
-    gen_launcher_vl_cmd.set_defaults(func=gen_launcher_vl)
+    gen_launcher_vl_cmd.set_defaults(func=launcher_vl.gen_launcher_vl)
     
     gen_launcher_sv_cmd = subparsers.add_parser("gen-launcher-sv",
             help="Generate a launcher for standard SV/DPI simulators")

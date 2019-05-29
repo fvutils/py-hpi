@@ -49,12 +49,16 @@ class semaphore:
     
 class ThreadGroup:
     
-    def __init__(self, threads):
+    def __init__(self, threads=[]):
         self.threads = threads;
         self.sem = semaphore()
         
         for t in threads:
             t.add_join_listener(self)
+            
+    def add(self,thread):
+        self.threads.append(thread)
+        thread.add_join_listener(self)
             
     def join_all(self):
 #        print("--> join_all.get()")
