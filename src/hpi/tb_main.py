@@ -54,7 +54,6 @@ def get_plusarg(key, dflt=None):
     
     for p in prv_plusargs:
         if p.p == key:
-            print("key=" + p.p + " val=" + str(p.v))
             if p.v == None:
                 ret = dflt
             else:
@@ -87,7 +86,7 @@ def tb_main():
         if len(entry_list.keys()) == 0:
             raise Exception("No +hpi.entry specified and no registered entries")
         elif len(entry_list.keys()) == 1:
-            entry = entry_list[next(entry_list.keys())]
+            entry = entry_list[list(entry_list.keys())[0]]
         else:
             raise Exception("No +hpi.entry specified and multiple registered entries")
     elif len(entry_l) == 1:

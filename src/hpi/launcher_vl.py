@@ -14,7 +14,9 @@ launcher = '''
 #include <stdio.h>
 #include "Python.h"
 #include "V${top}.h"
+#ifdef VM_TRACE
 ${trace_headers}
+#endif
 #include <map>
 #include <vector>
 #include <string>
@@ -25,10 +27,12 @@ static V${top}                       *prv_top = 0;
 static bool                          prv_initialized = false;
 static PyObject                      *prv_args;
 static PyObject                      *prv_hpi;
-static double                        prv_simtime = 0.0;
-static double                        prv_timeout = 1000000.0; // 1ms
+static uint64_t                      prv_simtime = 0;
+static uint64_t                      prv_timeout = 1000000000000/1000; // 1ms
 static bool                          prv_keep_running = true;
+#ifdef VM_TRACE
 ${trace_fields}
+#endif
 
 /********************************************************************
  * get_simtime()
@@ -218,14 +222,19 @@ int main(int argc, char **argv) {
     fprintf(stdout, "trace_plusarg=%p\\n", trace_plusarg);
     fflush(stdout);
     if (trace_plusarg && trace_plusarg != Py_None) {
+#ifdef VM_TRACE
         trace_file = PyUnicode_AsUTF8(trace_plusarg);
+#else
+        fprintf(stdout, "Warning: +vl.trace specified, but --trace not specified during compilation\\n");
+#endif
         fprintf(stdout, "trace_file=%s\\n", trace_file);
     }
     
+#ifdef VM_TRACE
 ${trace_init}
-    
-    prv_top->clk = 0;
-    prv_top->eval();
+#endif
+
+${clocking_init}    
     
     // Determine whether the user has specified a timeout
     PyObject *timeout_plusarg = PyObject_CallFunctionObjArgs(
@@ -250,15 +259,8 @@ ${trace_init}
 
     fprintf(stdout, "--> eval timeout=%f\\n", prv_timeout);
     fflush(stdout);   
-    while (prv_keep_running && prv_simtime < prv_timeout) { 
-        prv_top->clk = 0;
-        prv_top->eval();
-        dump();
-        prv_simtime += 5; // 
-        prv_top->clk = 1;
-        prv_top->eval();
-        dump();
-        prv_simtime += 5; // 
+    while (prv_keep_running && prv_simtime < prv_timeout) {
+${clocking_block}
     }
     fprintf(stdout, "<-- eval\\n");
     fflush(stdout);   
@@ -275,40 +277,102 @@ ${trace_init}
     // Done...
     Py_Finalize();
     
+#ifdef VM_TRACE
 ${trace_fini}
+#endif
     
     return 0;
 }
 '''
+
+def gen_clocking_init(args):
+    ret = ""
+
+    for c in args.clk:
+        clock_name = c[:c.find('=')]
+        ret += "    prv_top->" + clock_name + " = 0;\n"
+       
+    ret += "    prv_top->eval();\n"
+    
+    return ret
+
+def period_ps(period):
+    unit = 0
+    while unit < len(period) and ((period[unit] >= '0' and period[unit] <= '9') or period[unit] == '.'):
+        unit += 1
+
+    if unit == len(period):
+        raise Exception("clock period \"" + period + "\" has no units")
+    else:
+        base = period[:unit]
+        unit = period[unit:].lower()
+
+    ret = int(base)
+   
+    if unit == "ps": 
+        ret *= 1
+    elif unit == "ns":
+        ret *= 1000
+    elif unit == "us":
+        ret *= 1000000
+    elif unit == "ms":
+        ret *= 1000000000
+    elif unit == "s":
+        ret *= 1000000000000
+    else:
+        raise Exception("Unknown unit \"" + unit + "\" for clock period \"" + period + "\"")
+   
+    return ret;
+
+def gen_clocking_block(args):
+    ret = ""
+    
+#        prv_top->clk = 0;
+#        prv_top->eval();
+#        dump();
+#        prv_simtime += 5; // 
+#        prv_top->clk = 1;
+#        prv_top->eval();
+#        dump();
+#        prv_simtime += 5; // 
+
+    # TODO: simple way out for now
+    for c in args.clk:
+        clock_name = c[:c.find('=')]
+        clock_period = c[c.find('=')+1:]
+        
+        p_ps = period_ps(clock_period) / 2
+        
+        ret += "        prv_top->" + clock_name + " = 0;\n"
+        ret += "        prv_top->eval();\n"
+        ret += "        dump();\n"
+        ret += "        prv_simtime += " + str(p_ps) + "; // ps\n"
+        ret += "        prv_top->" + clock_name + " = 1;\n"
+        ret += "        prv_top->eval();\n"
+        ret += "        dump();\n"
+        ret += "        prv_simtime += " + str(p_ps) + "; // ps\n"
+        
+    return ret
 
 def gen_launcher_vl(args):
     template = Template(launcher)
     
     if args.clk == None or len(args.clk) == 0:
         raise Exception("No -clk specified")
-    
+    elif len(args.clk) > 1:
+        raise Exception("Only one clock statement supported")
+
+    for c in args.clk:
+        if c.find('=') == -1:
+            raise Exception("Clock specification \"" + c + "\" doesn't contain '='")
+        
     # Need to 
     
     template_params = {}
     template_params['top'] = args.top
-    if args.trace == True:
-        template_params['trace_headers'] = "#include \"verilated_vcd_c.h\""
-        template_params['trace_fields'] = "static VerilatedVcdC                 *prv_trace_o = 0;"
-        template_params['trace_init'] = '''
-    if (trace_file) {
-        Verilated::traceEverOn(true);  // Verilator must compute traced signals
-        prv_trace_o = new VerilatedVcdC();
-        prv_top->trace(prv_trace_o, 99);  // Trace 99 levels of hierarchy
-        prv_trace_o->open(trace_file);  // Open the dump file
-    }
-        '''
-        template_params['default_trace_file'] = "sim.vcd"
-        template_params['trace_fini'] = '''
-    if (prv_trace_o) {
-        prv_trace_o->close();
-    }
-        '''
-    elif args.trace_fst == True:
+    template_params['clocking_init'] = gen_clocking_init(args)
+    template_params['clocking_block'] = gen_clocking_block(args)
+    if args.trace_fst == True:
         template_params['trace_headers'] = "#include \"verilated_fst_c.h\""
         template_params['trace_fields'] = "static VerilatedFstC                 *prv_trace_o = 0;"
         template_params['trace_init'] = '''
@@ -326,17 +390,23 @@ def gen_launcher_vl(args):
     }
         '''
     else:
-        template_params['trace_headers'] = ""
-        template_params['trace_fields'] = ""
+        template_params['trace_headers'] = "#include \"verilated_vcd_c.h\""
+        template_params['trace_fields'] = "static VerilatedVcdC                 *prv_trace_o = 0;"
         template_params['trace_init'] = '''
     if (trace_file) {
-        fprintf(stdout, "Warning: +trace specified (tracefile=%s), but tracing disabled\\n",
-            trace_file);
+        Verilated::traceEverOn(true);  // Verilator must compute traced signals
+        prv_trace_o = new VerilatedVcdC();
+        prv_top->trace(prv_trace_o, 99);  // Trace 99 levels of hierarchy
+        prv_trace_o->open(trace_file);  // Open the dump file
     }
         '''
-        template_params['default_trace_file'] = ""
-        template_params['trace_fini'] = ""
-
+        template_params['default_trace_file'] = "sim.vcd"
+        template_params['trace_fini'] = '''
+    if (prv_trace_o) {
+        prv_trace_o->close();
+    }
+        '''
+    
     fh = open(args.o, "w")
     fh.write(template.substitute(template_params))
     fh.close()

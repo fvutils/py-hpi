@@ -54,9 +54,6 @@ def main():
     gen_launcher_vl_cmd.add_argument("-o", 
             default="launcher_vl.cpp",
             help="Specifies output file")
-    gen_launcher_vl_cmd.add_argument("--trace",
-            action="store_true",
-            help="Enable VCD tracing from the launcher")
     gen_launcher_vl_cmd.add_argument("--trace-fst",
             action="store_true",
             help="Enable FST tracing from the launcher")
