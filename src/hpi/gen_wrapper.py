@@ -33,7 +33,8 @@ def gen_bfm_wrapper(args):
     wrapper_t = bfm_wrappers[bfm_type]
     
     if callable(wrapper_t):
-        raise Exception("BFM \"" + args.bfm + "\" has a callable template")
+        print("Calling wrapper")
+        wrapper_t = wrapper_t()
 
     with open(args.o, "w") as f:
         f.write(wrapper_t)

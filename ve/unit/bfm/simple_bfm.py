@@ -2,6 +2,25 @@
 import hpi
 from hpi.rgy import bfm_wrapper_type
 
+@hpi.bfm
+class simple_bfm():
+    
+  def __init__(self):
+    self.ack_sem = hpi.semaphore()
+    pass
+
+  def xfer(self,data):
+    self.req(data)
+    self.ack_sem.get(1)
+
+  @hpi.export_task("i")
+  def req(self, data : int):
+    pass
+
+  @hpi.import_task()
+  def ack(self):
+    self.ack_sem.put(1)
+
 simple_bfm_sv = '''
 module simple_bfm(
     input        clk,
@@ -43,29 +62,8 @@ module simple_bfm(
         
 endmodule
 '''
-
-
-@hpi.bfm
-class simple_bfm():
-    
-  bfm_wrappers = {
-      bfm_wrapper_type.SV_DPI : simple_bfm_sv
-  }
-
-  def __init__(self):
-    self.ack_sem = hpi.semaphore()
-    pass
-
-  def xfer(self,data):
-    self.req(data)
-    self.ack_sem.get(1)
-
-  @hpi.export_task("i")
-  def req(self, data : int):
-    pass
-
-  @hpi.import_task()
-  def ack(self):
-    self.ack_sem.put(1)
-
-
+     
+# BFM Template registration
+simple_bfm.bfm_wrappers = {
+    bfm_wrapper_type.SV_DPI : simple_bfm_sv
+}
