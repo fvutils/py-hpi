@@ -12,6 +12,7 @@ from string import Template
 from hpi import launcher_vl
 from hpi import launcher_sv
 from hpi import gen_dpi_if
+from hpi import gen_wrapper
 
 def gen_dpi_export_methods():
     pass
@@ -48,6 +49,17 @@ def main():
     
     list_bfms_cmd = subparsers.add_parser("list-bfms")
     list_bfms_cmd.set_defaults(func=list_bfms)
+    
+    gen_bfm_wrapper_cmd = subparsers.add_parser("gen-bfm-wrapper")
+    gen_bfm_wrapper_cmd.add_argument('-type', 
+            help="Specify wrapper type",
+            choices=('sv-dpi',))
+    gen_bfm_wrapper_cmd.add_argument('-o', 
+            help="Specify the output file")
+    gen_bfm_wrapper_cmd.add_argument("bfm",
+            help="Specify the BFM type")
+    
+    gen_bfm_wrapper_cmd.set_defaults(func=gen_wrapper.gen_bfm_wrapper)
     
     gen_launcher_vl_cmd = subparsers.add_parser("gen-launcher-vl",
             help="Generate a launcher for Verilator")

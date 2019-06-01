@@ -10,6 +10,10 @@ try:
 except:
     pass
 
+class bfm_wrapper_type(enumerate):
+    SV_DPI = 1,
+    VL_VPI = 2
+
 bfm_list = []
 bfm_type_map = {}
 bfm_inst_map = {}

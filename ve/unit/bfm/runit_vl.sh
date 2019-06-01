@@ -10,6 +10,9 @@ python3 -m hpi gen-launcher-vl top \
 	-clk clk=1ns 
 if test $? -ne 0; then exit 1; fi
 
+python3 -m hpi -m my_tb gen-bfm-wrapper simple_bfm -type sv-dpi
+if test $? -ne 0; then exit 1; fi
+
 python3 -m hpi -m my_tb gen-dpi
 if test $? -ne 0; then exit 1; fi
 
@@ -40,5 +43,5 @@ if test $? -ne 0; then exit 1; fi
 #if test $? -ne 0; then exit 1; fi
 
 # Remove generated files
-# rm *.cpp *.c
-# rm -rf obj_dir __pycache__
+rm *.cpp *.c simple_bfm.sv
+rm -rf obj_dir __pycache__

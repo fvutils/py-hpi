@@ -8,6 +8,7 @@ from hpi.rgy import export_task
 from hpi.rgy import register_bfm
 from hpi.rgy import bfm_list
 from hpi.rgy import entry
+from hpi.rgy import bfm_wrapper_type
 from hpi.tb_main import get_plusarg
 from hpi.tb_main import tb_main
 from hpi.tb_main import tb_init
