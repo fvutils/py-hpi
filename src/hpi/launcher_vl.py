@@ -257,7 +257,7 @@ ${clocking_init}
         PyErr_Print();
     }
 
-    fprintf(stdout, "--> eval timeout=%f\\n", prv_timeout);
+    fprintf(stdout, "--> eval timeout=%lld\\n", prv_timeout);
     fflush(stdout);   
     while (prv_keep_running && prv_simtime < prv_timeout) {
 ${clocking_block}
@@ -270,9 +270,9 @@ ${clocking_block}
     // TODO: check for trace enable (support VCD and FST?)
     
     // TODO: run python entry-point
-#ifdef VM_COVERAGE
-    VerilatedCov::write("sim.cdb");
-#endif
+//#ifdef VM_COVERAGE
+//    VerilatedCov::write("sim.cdb");
+//#endif
     
     // Done...
     Py_Finalize();

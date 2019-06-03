@@ -45,6 +45,7 @@ def main():
     gen_dpi_cmd = subparsers.add_parser("gen-dpi")
     gen_dpi_cmd.add_argument("-verilator", action="store_true", help="Enables Verilator specifics")
     gen_dpi_cmd.add_argument("-o", help="Specifies output file")
+    gen_dpi_cmd.add_argument("-m", action="append", help="Specifies a module to load")
     gen_dpi_cmd.set_defaults(func=gen_dpi_if.gen_dpi)
     
     list_bfms_cmd = subparsers.add_parser("list-bfms")

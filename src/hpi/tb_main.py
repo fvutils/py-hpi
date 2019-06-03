@@ -124,8 +124,10 @@ def tb_init(argv):
     print("tb_init: " + str(argv))
     
     prv_argv = argv;
-    
-    for arg in argv:
+
+    i=0;
+    while i < len(argv):
+        arg = argv[i]
         if arg.startswith("+"):
             key = arg[1:]
             if key.find('=') != -1:
@@ -134,6 +136,12 @@ def tb_init(argv):
                     key[key.find('=')+1:]));
             else:
                 prv_plusargs.append(plusarg(key, None))
+        elif arg == "-f" or arg == "-F":
+            filelist = argv[i+1]
+            print("TODO: handle filelist \"" + filelist + "\"")
+            i += 1
+        i += 1
+            
 
     for p in prv_plusargs:                
         if p.p == "hpi.load":

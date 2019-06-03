@@ -165,8 +165,9 @@ def gen_c_paramlist(params):
             ret += typemap[p.ptype]
             if p.ptype != 's':
                 ret += " "
-            ret += p.pname
+            ret += p.pname + ", "
             
+        ret = ret[:len(ret)-2]
     return ret
 
 def gen_c_ret_type(t):
