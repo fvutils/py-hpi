@@ -27,5 +27,5 @@ at the signal level from the design periphery.
 - Loading of Python modules
 - Entry point (?) 
 
-<img src="svg.wavedrom.com{signal:[{wave:'0.P...'},{wave:'023450',data:'S E R V'}]}"/>
+<img src="https://svg.wavedrom.com/{signal:[{wave:'0.P...'},{wave:'023450',data:'S E R V'}]}"/>
 
