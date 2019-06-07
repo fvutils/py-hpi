@@ -4,6 +4,8 @@ Created on Jun 2, 2019
 @author: ballance
 '''
 
+import os
+
 class FilelistParser():
     
     def __init__(self, 
@@ -17,10 +19,10 @@ class FilelistParser():
         self.cwd = cwd
         self.processed_paths = processed_paths
         self.fp = open(filelist, mode="rb")
-        self.unget_c = -1
+        self.unget_c = ""
         
     
-    def parse(self, ) -> [str]:
+    def parse(self) -> [str]:
         ret = []
         
         if self.filelist in self.processed_paths:
@@ -37,7 +39,7 @@ class FilelistParser():
                 filelist = self.expand(self.readtok())
                 basedir = self.cwd
                 
-                parser = FilelistParser(basedir, filelist, self.processed_paths)
+                parser = FilelistParser(filelist, self.cwd, self.processed_paths)
                 
                 sub_args = parser.parse()
                 
@@ -49,12 +51,12 @@ class FilelistParser():
         return ret
     
     def readtok(self) -> str:
-        ret = None
-        
+        ret = ""
+
         while True:
             c = self.getch()
             
-            if c == -1:
+            if c == "":
                 break
             
             if c == '/':
@@ -67,7 +69,7 @@ class FilelistParser():
                     while True:
                         c = self.getch()
                         
-                        if c == -1:
+                        if c == "":
                             break
                         
                         cc2 = cc1
@@ -80,7 +82,7 @@ class FilelistParser():
                     while True:
                         c = self.getch()
                     
-                        if c == -1 or c == '\n':
+                        if c == "" or c == '\n':
                             self.ungetch(c)
                             break
                 else:
@@ -88,46 +90,55 @@ class FilelistParser():
             elif c.isspace():
                 while True:
                     c = self.getch()
-                    if c == -1 or c.isspace():
+                    if c == "" or not c.isspace():
                         break
-
-            if c == '"':
-                last_c = -1
-                ret.append(c)
-                
-                while True:
-                    c = self.getch()
-                    
-                    if c == '"' and last_c == '\\':
-                        ret[len(ret)-1] = c
-                    else:
-                        ret.append(c)
-                        
-                    if c == -1 or (c == '"' and last_c != '\\'):
-                        break
+                self.ungetch(c)
+                continue
             else:
-                ret.append(c)
-                while True:
-                    c = self.getch()
-                    if c == -1 or c.isspace():
-                        self.ungetch(c)
-                        break
-                    else:
-                        ret.append(c)
-            
-        return ret
-    
-    def expand(self, arg : str) -> str:
-        pass
-   
-    def getch(self) -> str:
-        ret = -1
-        
-        if self.unget_c != -1:
-            ret = self.unget_c
-            self.unget_c = -1
+                # We have a non-WS character
+                break
+
+        if c == '"':
+            last_c = -1
+            ret += c
+                
+            while True:
+                c = self.getch()
+                    
+                if c == '"' and last_c == '\\':
+                    ret[len(ret)-1] = c
+                else:
+                    ret.append(c)
+                       
+                if c == "" or (c == '"' and last_c != '\\'):
+                    break
         else:
-            ret = self.fp.read(1)
+            ret += c
+            while True:
+                c = self.getch()
+                if c == "" or c.isspace():
+                    self.ungetch(c)
+                    break
+                else:
+                    ret += c
+
+        if len(ret) > 0:
+            return ret
+        else:
+            return None
+    
+    def getch(self) -> str:
+        ret = ""
+        
+        if self.unget_c != "":
+            ret = self.unget_c
+            self.unget_c = ""
+        else:
+            b = self.fp.read(1)
+            if len(b) > 0:
+                ret = b.decode()
+            else:
+                ret = ""
 
         return ret
     
@@ -140,7 +151,7 @@ class FilelistParser():
         i=0
         while i < len(arg):
             if arg[i] == '$':
-                if arg[i+1] = '{':
+                if arg[i+1] == '{':
                     expect_closebrace = True
                     i += 2
                 else:
@@ -148,7 +159,25 @@ class FilelistParser():
                     
                 j = i
                 while j < len(arg):
-                    c = arg[i]
+                    c = arg[j]
+                    
+                    if not c.isalpha() and not c.isnumeric() and (c != '_'):
+                        break
+                    j += 1
+                    
+                key = arg[i:j]
+                
+                if key in os.environ.keys():
+                    val = os.environ[key]
+                else:
+                    val = ""
+                    
+                if expect_closebrace == False:
+                    i=j-1
+                else:
+                    i=j
+                    
+                ret += val
             else:
                 ret += arg[i]
                 

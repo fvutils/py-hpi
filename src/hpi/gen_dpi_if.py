@@ -238,7 +238,18 @@ def gen_py_paramlist(params):
         if p.ptype == 's':
             ret += "PyUnicode_FromString(" + p.pname + "), "
         else:
-            ret += "PyLong_FromLong(" + p.pname + "), "
+            if len(p.ptype) > 1:
+                if p.ptype[1] == 'u':
+                    unsigned = "Unsigned"
+                else:
+                    raise Exception("Unknown type spec \"" + p.ptype + "\"")
+            else:
+                unsigned = ""
+                
+            if p.ptype[0] == 'l':
+                ret += "PyLong_From" + unsigned + "LongLong(" + p.pname + "), "
+            else:
+                ret += "PyLong_From" + unsigned + "Long(" + p.pname + "), "
 
     return ret
     
@@ -290,8 +301,12 @@ def gen_dpi_bfm_imp_tf_impl(tf : tf_decl):
     ret += "    PyObject *bfm = PyList_GetItem(bfm_list, id);\n"
     ret += "    PyObject *yield = PyObject_GetAttrString(hpi, \"int_thread_yield\");\n"
     ret += "    // TODO: pass arguments\n"
-    ret += "    PyObject_CallMethodObjArgs(bfm, PyUnicode_FromString(\"" + tf.fname + "\"), ";
+    ret += "    PyObject *result = PyObject_CallMethodObjArgs(bfm, PyUnicode_FromString(\"" + tf.fname + "\"), ";
+    ret += gen_py_paramlist(tf.params) ;
     ret += "0);\n"
+    ret += "    if (!result) {\n"
+    ret += "        PyErr_Print();\n"
+    ret += "    }\n"
     ret += "    PyObject_CallFunctionObjArgs(yield, 0);\n"
     ret += "    Py_DECREF(hpi);\n";
     ret += "    return 0;\n"

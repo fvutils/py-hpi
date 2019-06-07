@@ -49,7 +49,6 @@ static PyObject *get_simtime(PyObject *self, PyObject *args) {
  * Called from the Python side to terminate the simuation
  ********************************************************************/
 static PyObject *finish(PyObject *self, PyObject *args) {
-  fprintf(stdout, "Note: finish\\n");
   prv_keep_running = false;
   return PyLong_FromLong(0);
 }
@@ -82,8 +81,6 @@ void pyhpi_launcher_init() {
         return;
     }
     
-    fprintf(stdout, "TODO: pyhpi_launcher_init()\\n");
-    
     // Register the HPI module with Python
     // TODO: support a callback to signal activity (?)
     pyhpi_init();
@@ -114,6 +111,7 @@ void pyhpi_launcher_init() {
         
     if (!ret) {
         fprintf(stdout, "Error calling tb_init\\n");
+        PyErr_Print();
     }
 
     
@@ -134,8 +132,6 @@ void pyhpi_launcher_init() {
 static double str2time(const char *ts) {
     double ret = 0.0;
     char *eptr;
-    
-    fprintf(stdout, "timeout: %s\\n", ts);
     
     if ((ret = strtod(ts, &eptr)) != 0.0) {
       // Now, determine the units

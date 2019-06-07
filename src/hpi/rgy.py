@@ -21,8 +21,11 @@ tf_global_list = []
 entry_list = {}
 
 def entry(ent):
+    global entry_list
     print("Register entry \"" + ent.__name__ + "\"")
     entry_list[ent.__name__] = ent
+    
+    print("entry_list.size==" + str(len(entry_list.keys())))
 
 def get_bfm_info(tname : str) -> bfm_info:
     if tname in bfm_type_map.keys():
@@ -224,6 +227,7 @@ class import_func(tf_decl):
         return func
     
 def register_bfm(tname : str, iname : str, id : int):
+    print("--> register_bfm: " + tname + " " + iname)
     if tname not in bfm_type_map.keys():
         print("Error: BFM type \"" + tname + "\" is not registered")
         return -1
@@ -237,5 +241,6 @@ def register_bfm(tname : str, iname : str, id : int):
     bfm_inst_map[iname] = inst
     bfm_list.append(inst)
     
+    print("<-- register_bfm: " + tname + " " + iname)
     return id
 
