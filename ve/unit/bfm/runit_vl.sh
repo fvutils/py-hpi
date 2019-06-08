@@ -7,10 +7,10 @@ export PYTHONPATH=$cwd/../../../src:$PYTHONPATH
 python3 -m hpi gen-launcher-vl top -clk clk=1ns 
 if test $? -ne 0; then exit 1; fi
 
-python3 -m hpi -m my_tb gen-bfm-wrapper simple_bfm -type sv-dpi
+python3 -m hpi gen-bfm-wrapper -m my_tb simple_bfm -type sv-dpi
 if test $? -ne 0; then exit 1; fi
 
-python3 -m hpi -m my_tb gen-dpi
+python3 -m hpi gen-dpi -m my_tb
 if test $? -ne 0; then exit 1; fi
 
 # Query required compilation/linker flags from Python

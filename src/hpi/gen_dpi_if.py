@@ -409,6 +409,13 @@ def gen_dpi_tf_impl():
 def gen_dpi(args):
     if args.o == None:
         args.o = "pyhpi_dpi.c"
+        
+    # Load up modules that contain DPI tasks
+    if args.m != None:
+        print("loading modules")
+        for m in args.m:
+            print("loading " + str(m))
+            __import__(m)        
 
     template_params = {}
     template_params['filename'] = os.path.basename(args.o)

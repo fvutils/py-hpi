@@ -353,6 +353,13 @@ def gen_clocking_block(args):
 def gen_launcher_vl(args):
     template = Template(launcher)
     
+    # Load up modules that contain DPI tasks
+    if args.m != None:
+        print("loading modules")
+        for m in args.m:
+            print("loading " + str(m))
+            __import__(m)    
+    
     if args.clk == None or len(args.clk) == 0:
         raise Exception("No -clk specified")
     elif len(args.clk) > 1:

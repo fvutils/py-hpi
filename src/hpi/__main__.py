@@ -57,6 +57,7 @@ def main():
             choices=('sv-dpi',))
     gen_bfm_wrapper_cmd.add_argument('-o', 
             help="Specify the output file")
+    gen_bfm_wrapper_cmd.add_argument("-m", action="append", help="Specifies a module to load")
     gen_bfm_wrapper_cmd.add_argument("bfm",
             help="Specify the BFM type")
     
@@ -73,6 +74,7 @@ def main():
     gen_launcher_vl_cmd.add_argument("-clk", 
             action="append",
             help="Specifies clock to drive")
+    gen_launcher_vl_cmd.add_argument("-m", action="append", help="Specifies a module to load")
     gen_launcher_vl_cmd.add_argument("top",
             help="Specify the top-level module to run")
     gen_launcher_vl_cmd.set_defaults(func=launcher_vl.gen_launcher_vl)
@@ -84,19 +86,12 @@ def main():
             help="Specifies the output directory")
     gen_launcher_sv_cmd.set_defaults(func=gen_launcher_sv)
     
-    parser.add_argument("-m", action="append", help="Specifies a module to load")
-    
     args = parser.parse_args()
    
     if hasattr(args, "func") == False:
         print("missing command")
         
-    # Load up modules that contain DPI tasks
-    if args.m != None:
-        print("loading modules")
-        for m in args.m:
-            print("loading " + str(m))
-            __import__(m)
+
             
     args.func(args)
    

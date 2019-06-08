@@ -12,16 +12,6 @@ end
 assign clk = clk_r;
 `endif
 
-task foo();
-endtask
-
-export "DPI-C" task foo;
-// import "DPI-C" context task run_my_tb(int a);
-
-initial begin
-end
-
-int count = 0;
 wire[7:0]	data_1;
 wire		req_1;
 wire		ack_1;
@@ -51,15 +41,6 @@ end
 
 simple_bfm u_bfm_1(.clk(clk), .req_o(req_1), .ack(ack_1), .data(data_1));
 simple_bfm u_bfm_2(.clk(clk), .req_o(req_2), .ack(ack_2), .data(data_2));
-
-/*
-always @(posedge clk) begin
-  count <= count + 1;
-  if ((count%10) == 0) begin
-    run_my_tb(count);
-  end
-end
- */
 
 endmodule
 

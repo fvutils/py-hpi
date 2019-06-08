@@ -8,6 +8,13 @@ from hpi.rgy import bfm_type_map, bfm_wrapper_type
 
 def gen_bfm_wrapper(args):
     
+    # Load up modules that contain DPI tasks
+    if args.m != None:
+        print("loading modules")
+        for m in args.m:
+            print("loading " + str(m))
+            __import__(m)    
+    
     if args.bfm not in bfm_type_map.keys():
         raise Exception("BFM \"" + args.bfm + "\" is not registered")
 
