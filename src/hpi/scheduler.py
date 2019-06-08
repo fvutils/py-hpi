@@ -9,6 +9,7 @@ Created on May 25, 2019
 import threading
 from threading import Lock
 from threading import Condition
+import traceback
 
 prv_active_mutex = Lock()
 prv_active_thread_started = False
@@ -105,7 +106,13 @@ class SimThread(threading.Thread,SimThreadData):
 #        print("<-- Wait to run")
         
 #        print("--> calling function " + str(self.func))
-        self.func()
+        try:
+            self.func()
+        except:
+            print("Error: caught exception in SimThread")
+            traceback.print_exc()
+#            print(e)
+        
 #        print("<-- calling function")
 #        print("<-- run")
         

@@ -92,15 +92,20 @@ def tb_main():
     else:
         raise Exception("Multiple +hpi.entry options specified")
 
-    # TODO: should launch entry() in a new hpi thread
+    # Launch entry() in a new hpi thread
     create_root_thread(entry)
     
     # Now, wait until any launched threads are dormant
+    stable_count = -1
     for i in range(1000):
         if thread_yield() == False:
+            stable_count = i
 #            print("Stable: " + str(i))
             break
 
+    if stable_count == -1:
+        print("Error: after 1000 iterations, all pyHPI threads are not blocked")
+        
     if prv_objection_count == 0:
         print("Warning: no objections raised by initial threads")
         finish()
