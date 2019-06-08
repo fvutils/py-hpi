@@ -9,6 +9,10 @@ and provides higher performance than does integration at the signal level.
 
 # Theory of Operations
 
+<center>
+<img src="docs/block_diagram.png"/>
+</center>
+
 - General structure
 
 ## BFMs
@@ -67,8 +71,72 @@ each method parameter is specified with one or two characters:
   - Registration of methods
 
 ### HDL
+The HDL side of a BFM is responsible for converting procedure calls from Python to signal activity and vice versa. 
+Currently, Py-HPI supports SystemVerilog. Details on other languages integrations will be added as they are
+developed.
 
-#### SystemVerilog  
+#### SystemVerilog
+
+```sv
+module simple_bfm(
+    input             clk,
+    output reg        req_o,
+    output reg [7:0]  data,
+    input             ack);
+
+    bit req_r = 0;
+    bit[7:0] data_r = 0;
+
+    always @(posedge clk) begin
+        req_o <= req_r;
+        data <= data_r;
+    end
+    
+    // BFM instance registration
+    int m_id;
+    import "DPI-C" context function int simple_bfm_register(string path);
+    initial begin
+        m_id = simple_bfm_register($sformatf("%m"));
+    end
+
+    task simple_bfm_req(int data);
+        req_r = 1;
+        data_r = data;
+    endtask
+    export "DPI-C" task simple_bfm_req;
+
+    import "DPI-C" context task simple_bfm_ack(int id);
+
+    always @(posedge clk) begin
+        if (req_o && ack) begin
+            // Remember that new requests can 
+            // occur as a side effect of the ack
+            req_r = 0;
+            simple_bfm_ack(m_id);
+        end
+    end
+        
+endmodule
+```
+
+The SystemVerilog portion of a BFM can be placed either in a module or an interface.
+
+Each BFM instance must register itself by calling an imported function named
+*bfm_type*_register and passing the instance path for the BFM. The registration
+function returns an id that is used with subsequent calls to imported tasks.
+
+```sv
+    // BFM instance registration
+    int m_id;
+    import "DPI-C" context function int simple_bfm_register(string path);
+    initial begin
+        m_id = simple_bfm_register($sformatf("%m"));
+    end
+```
+
+The registration code is shown above.
+  
+
 The SystemVerilog 
 - SystemVerilog side
   - Registration of each BFM instance
