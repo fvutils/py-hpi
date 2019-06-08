@@ -1,13 +1,10 @@
 #!/bin/sh -x
 
-# TODO: auto-set PYTHONPATH (?)
+# auto-set PYTHONPATH
 cwd=`pwd`
 export PYTHONPATH=$cwd/../../../src:$PYTHONPATH
 
-ncpu=`cat /proc/cpuinfo | grep processor | wc -l`
-
-python3 -m hpi gen-launcher-vl top \
-	-clk clk=1ns 
+python3 -m hpi gen-launcher-vl top -clk clk=1ns 
 if test $? -ne 0; then exit 1; fi
 
 python3 -m hpi -m my_tb gen-bfm-wrapper simple_bfm -type sv-dpi
@@ -16,31 +13,23 @@ if test $? -ne 0; then exit 1; fi
 python3 -m hpi -m my_tb gen-dpi
 if test $? -ne 0; then exit 1; fi
 
+# Query required compilation/linker flags from Python
 CFLAGS="${CFLAGS} `python3-config --cflags`"
 LDFLAGS="${LDFLAGS} `python3-config --ldflags`"
 
 verilator --cc --exe -Wno-fatal --trace \
-	top.sv \
-	simple_bfm.sv \
-	launcher_vl.cpp pyhpi_dpi.c -coverage \
-  -CFLAGS "${CFLAGS}" -LDFLAGS "${LDFLAGS}"
+	top.sv simple_bfm.sv \
+	launcher_vl.cpp pyhpi_dpi.c \
+	-CFLAGS "${CFLAGS}" -LDFLAGS "${LDFLAGS}"
 if test $? -ne 0; then exit 1; fi
 
-
-#gcc ${CFLAGS} -c pyhpi_dpi.c
-#if test $? -ne 0; then exit 1; fi
-
-#g++ ${CFLAGS} -c launcher_vl.cpp
-#if test $? -ne 0; then exit 1; fi
-
-make -j${ncpu} -C obj_dir -f Vtop.mk
+# Build the Verilator image
+make -C obj_dir -f Vtop.mk
 if test $? -ne 0; then exit 1; fi
 
+# Run the simulation
 ./obj_dir/Vtop +hpi.load=my_tb +vl.timeout=1ms +vl.trace
 if test $? -ne 0; then exit 1; fi
-
-#g++ -o foo ./obj_dir/Vtop__ALL.a `python3-config --ldflags`
-#if test $? -ne 0; then exit 1; fi
 
 # Remove generated files
 rm *.cpp *.c simple_bfm.sv
