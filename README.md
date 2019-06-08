@@ -252,15 +252,34 @@ Python method.
 ```
 
 ## Python testbench
-- Entry point
-  - Runs in a thread
-  - Simulation stops when it exits (?)
+The most important element of the Python side of a Py-HPI testbench is the 
+entry point. This is a Python method that acts as the 'main' of the Python
+testbench. This method is decorated with an @hpi.entry decorator, which 
+enables Py-HPI to report the available entry points in a given testbench
+environment.
+
+```py3
+@hpi.entry
+def run_my_tb():
+    print("run_my_tb - bfms: " + str(len(hpi.rgy.bfm_list)))
+
+    with hpi.fork() as f:
+      f.task(lambda: thread_func_1());
+      f.task(lambda: thread_func_2());
+
+    print("end of run_my_tb");
+```
+
+The entry point method is executed in a thread, which allows the thread
+to interact in a blocking manner with the HDL environment.
+
+### Testbench API (TODO)
 - Access to plusargs  
 - BFM registry
 - Threading API
   - Thread create
   - Semaphore (semaphore)
-  - Objection
+  - Objection mechanism
 
 ## Simulator Support (Launcher)
 
@@ -271,16 +290,26 @@ Python method.
 
 ## Testbench Wrapper
 
+### SystemVerilog DPI
+
+
 ## Running Simulation
 
 ### Common options
-- +hpi.entry=<function>
-- +hpi.load=<module>
+- **+hpi.entry=*method*** - Specifies the entry point method for Py-HPI
+- **+hpi.load=*module*** - Specifies that Py-HPI should load a specific module or package
 
 ### Standard SystemVerilog DPI Simulator
 
 ### Verilator
+- **+vl.trace[=*filename*]** -- Enables trace generation
+- **+vl.timeout=*time*** -- Specifies the maximum amount of time to run in s,ms,us,ns (eg 1ms)
 
+
+# Command Reference
+Py-HPI provides several commands for generating simulation support and testbench wrappers.
+
+**TODO: ** Needs documentation
 
 ## Wrapper Generation
 

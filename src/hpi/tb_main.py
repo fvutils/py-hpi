@@ -63,6 +63,14 @@ def get_plusarg(key, dflt=None):
 
     return ret
 
+def tb_entry_wrapper(entry):
+    raise_objection()
+
+    try:
+        entry()
+    finally:
+        drop_objection()
+
 def tb_main():
     global entry_list
    
@@ -92,8 +100,8 @@ def tb_main():
     else:
         raise Exception("Multiple +hpi.entry options specified")
 
-    # Launch entry() in a new hpi thread
-    create_root_thread(entry)
+    # Launch entry() in a new SimThread
+    create_root_thread(lambda: tb_entry_wrapper(entry))
     
     # Now, wait until any launched threads are dormant
     stable_count = -1
