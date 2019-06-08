@@ -112,3 +112,5 @@ The SystemVerilog
 - Command-line arguments
 - Specification of python paths
 - Loading of Python modules
+- Entry point (?) 
+
