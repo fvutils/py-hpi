@@ -56,6 +56,8 @@ static void **prv_scope_list   = 0;
 static int prv_scope_list_idx = 0;
 static int prv_scope_list_len = 0;
 static int prv_initialized = 0;
+static PyObject *prv_hpi = 0;
+static PyObject *prv_bfm_list = 0;
 
 // TODO: need to import hpi module
 
@@ -295,11 +297,13 @@ def gen_dpi_bfm_imp_tf_impl(tf : tf_decl):
         ret += tf.tf_name() + "(int id, " + gen_c_paramlist(tf.params) + ") {\n"
     else:
         ret += tf.tf_name() + "(int id) {\n"
-        
-    ret += "    PyObject *hpi = PyImport_ImportModule(\"hpi\");\n";
-    ret += "    PyObject *bfm_list = PyObject_GetAttrString(hpi, \"bfm_list\");\n"
-    ret += "    PyObject *bfm = PyList_GetItem(bfm_list, id);\n"
-    ret += "    PyObject *yield = PyObject_GetAttrString(hpi, \"int_thread_yield\");\n"
+
+    ret += "    if (!prv_hpi) {\n"
+    ret += "        prv_hpi = PyImport_ImportModule(\"hpi\");\n";
+    ret += "        prv_bfm_list = PyObject_GetAttrString(prv_hpi, \"bfm_list\");\n"
+    ret += "    }\n"
+    ret += "    PyObject *bfm = PyList_GetItem(prv_bfm_list, id);\n"
+#    ret += "    PyObject *yield = PyObject_GetAttrString(hpi, \"int_thread_yield\");\n"
     ret += "    // TODO: pass arguments\n"
     ret += "    PyObject *result = PyObject_CallMethodObjArgs(bfm, PyUnicode_FromString(\"" + tf.fname + "\"), ";
     ret += gen_py_paramlist(tf.params) ;
@@ -307,8 +311,8 @@ def gen_dpi_bfm_imp_tf_impl(tf : tf_decl):
     ret += "    if (!result) {\n"
     ret += "        PyErr_Print();\n"
     ret += "    }\n"
-    ret += "    PyObject_CallFunctionObjArgs(yield, 0);\n"
-    ret += "    Py_DECREF(hpi);\n";
+#    ret += "    PyObject_CallFunctionObjArgs(yield, 0);\n"
+#    ret += "    Py_DECREF(hpi);\n";
     ret += "    return 0;\n"
     
     # TODO: call Python side

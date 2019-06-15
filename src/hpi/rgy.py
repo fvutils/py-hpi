@@ -4,6 +4,7 @@
 #* BFM registration decorators and methods
 #****************************************************************************
 from hpi.bfm_info import bfm_info
+from hpi.scheduler import int_thread_yield
 
 try:
     import hpi_e
@@ -104,7 +105,6 @@ class import_task(tf_decl):
     def __call__(self, func):
         fullname = func.__qualname__
         
-        
         fi = func.__code__
         
         locals_idx = fullname.find("<locals>")
@@ -136,7 +136,12 @@ class import_task(tf_decl):
             tf.module = func.__module__
             tf_global_list.append(tf)
 
-        return func
+        def func_w(*args):
+            func(*args)
+            # Run the thread scheduler to allow newly-unblocked threads to run
+            int_thread_yield()
+            
+        return func_w
 
 # An export_task decorator is specified on a task that will
 # forward to a task implemented by the HDL environment. No
