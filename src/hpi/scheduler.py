@@ -9,6 +9,7 @@ Created on May 25, 2019
 import threading
 from threading import Lock
 from threading import Condition
+import traceback
 
 prv_active_mutex = Lock()
 prv_active_thread_started = False
@@ -16,6 +17,7 @@ prv_active_thread_start_cond = threading.Condition(prv_active_mutex)
 prv_active_thread = None
 prv_active_thread_list = []
 prv_blocked_thread_list = []
+prv_threadset_changed = False
 
 class SimThreadData():
     def __init__(self):
@@ -42,6 +44,7 @@ class semaphore:
         prv_active_mutex.release()
         
         while self.count < count:
+            prv_threadset_changed = True
             self.thread.block()
 
         self.thread = None
@@ -99,13 +102,21 @@ class SimThread(threading.Thread,SimThreadData):
         prv_active_thread_list.append(self)
         prv_active_thread_start_cond.notify()
         prv_active_mutex.release()
+        
+        prv_threadset_changed = True
    
 #        print("--> Wait to run")
         self.thread_yield()
 #        print("<-- Wait to run")
         
 #        print("--> calling function " + str(self.func))
-        self.func()
+        try:
+            self.func()
+        except:
+            print("Error: caught exception in SimThread")
+            traceback.print_exc()
+#            print(e)
+        
 #        print("<-- calling function")
 #        print("<-- run")
         
@@ -134,6 +145,7 @@ class SimThread(threading.Thread,SimThreadData):
 #        print("--> block " + str(self))
         self.running = False
         self.suspend_mutex.acquire()
+        prv_threadset_changed = True
         self.suspend_cond.notify()
         self.suspend_mutex.release()
         
@@ -151,6 +163,8 @@ class SimThread(threading.Thread,SimThreadData):
         
         if self.running == False:
             self.running = True
+            
+            prv_threadset_changed = True
        
             prv_active_mutex.acquire()
             prv_active_thread_list.append(self)
@@ -223,14 +237,13 @@ def thread_yield():
     return yielded
 
 def int_thread_yield():
-#    print("--> int_thread_yield")
+    global prv_threadset_changed
+    if prv_threadset_changed or True:
+        for i in range(1000):
+            if thread_yield() == False:
+                break
+        prv_threadset_changed = False
     
-    for i in range(1000):
-        if thread_yield() == False:
-#            print("int_thread_yield: quit after " + str(i))
-            break
-    
-#    print("<-- int_thread_yield")
     
 def thread_block():
     pass

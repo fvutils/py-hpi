@@ -3,9 +3,11 @@ Created on May 22, 2019
 
 @author: ballance
 '''
+import os
 from hpi.rgy import entry_list
 from hpi.scheduler import create_root_thread
 from hpi.scheduler import thread_yield
+from hpi.filelist_parser import FilelistParser
 
 class plusarg:
     def __init__(self, p, v):
@@ -40,7 +42,6 @@ def get_plusarg_vals(key):
     ret = []
     
     for p in prv_plusargs:
-        print("Plusarg: p=" + p.p + " v=" + str(p.v))
         if p.p == key:
             ret.append(p.v)
 
@@ -62,23 +63,21 @@ def get_plusarg(key, dflt=None):
 
     return ret
 
-def root_thread(entry):
-    print("--> Waiting for registration")
+def tb_entry_wrapper(entry):
+    raise_objection()
+
     try:
-        import hpi_l
-        hpi_l.init()
-    except:
-        print("Error: problem loading hpi_l")
-    print("<-- Waiting for registration")
-    
-    
+        entry()
+    finally:
+        drop_objection()
+
 def tb_main():
     global entry_list
-    print("Hello from tb_main")
    
     # TODO: Select a default entry if one exists
-    for e in entry_list.keys():
-        print("Entry: " + e)
+#    print("entry_list: size=" + str(len(entry_list.keys())))
+#    for e in entry_list.keys():
+#        print("Entry: " + e)
 
     entry_l = get_plusarg_vals("hpi.entry")
     entry = None
@@ -91,8 +90,8 @@ def tb_main():
             raise Exception("No +hpi.entry specified and multiple registered entries")
     elif len(entry_l) == 1:
         e = entry_l[0]
-        if e.find(".") != -1:
-            e = e[e.find(".")+1:]
+        if e.rfind('.') != -1:
+            e = e[e.rfind('.')+1:]
             
         if e in entry_list.keys():
             entry = entry_list[e]
@@ -101,15 +100,20 @@ def tb_main():
     else:
         raise Exception("Multiple +hpi.entry options specified")
 
-    # TODO: should launch entry() in a new hpi thread
-    create_root_thread(entry)
+    # Launch entry() in a new SimThread
+    create_root_thread(lambda: tb_entry_wrapper(entry))
     
     # Now, wait until any launched threads are dormant
+    stable_count = -1
     for i in range(1000):
         if thread_yield() == False:
-            print("Stable: " + str(i))
+            stable_count = i
+#            print("Stable: " + str(i))
             break
 
+    if stable_count == -1:
+        print("Error: after 1000 iterations, all pyHPI threads are not blocked")
+        
     if prv_objection_count == 0:
         print("Warning: no objections raised by initial threads")
         finish()
@@ -123,9 +127,29 @@ def tb_init(argv):
     timeout = 1000000 # 1ms (in ns)
     print("tb_init: " + str(argv))
     
-    prv_argv = argv;
+    # Expand out arguments
+    i=0
+    prv_argv = []
+    cwd = os.getcwd()
+    while i < len(argv):
+        if argv[i] == '-f' or argv[i] == '-F':
+            filelist = argv[i+1]
+            print("filelist=\"" + filelist + "\"")
+            parser = FilelistParser(filelist, cwd, 
+                    (argv[i] == '-F'))
+            fl_argv = parser.parse()
+            
+            for arg in fl_argv:
+                prv_argv.append(arg)
+                
+            i+=1
+        else:
+            prv_argv.append(argv[i])
+        i+=1
     
-    for arg in argv:
+    i=0;
+    while i < len(prv_argv):
+        arg = prv_argv[i]
         if arg.startswith("+"):
             key = arg[1:]
             if key.find('=') != -1:
@@ -134,6 +158,12 @@ def tb_init(argv):
                     key[key.find('=')+1:]));
             else:
                 prv_plusargs.append(plusarg(key, None))
+        elif arg == "-f" or arg == "-F":
+            filelist = prv_argv[i+1]
+            print("TODO: handle filelist \"" + filelist + "\"")
+            i += 1
+        i += 1
+            
 
     for p in prv_plusargs:                
         if p.p == "hpi.load":
@@ -146,10 +176,13 @@ def tb_init(argv):
             if p.v.find("."):
                 # Load the module associated with the entry
                 m = p.v[:p.v.find(".")]
+                print("--> load module \"" + m + "\"")
                 try:
                     __import__(m)
                 except:
                     print("Error: loading " + m)
+                    raise
+                print("<-- load module \"" + m + "\"")
 
     try:
         import hpi_l

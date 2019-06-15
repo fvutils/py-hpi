@@ -86,6 +86,8 @@ static void **prv_scope_list   = 0;
 static int prv_scope_list_idx = 0;
 static int prv_scope_list_len = 0;
 static int prv_initialized = 0;
+static PyObject *prv_hpi = 0;
+static PyObject *prv_bfm_list = 0;
 
 // TODO: need to import hpi module
 
@@ -211,8 +213,9 @@ def gen_c_paramlist(params):
             ret += typemap[p.ptype]
             if p.ptype != 's':
                 ret += " "
-            ret += p.pname
+            ret += p.pname + ", "
             
+        ret = ret[:len(ret)-2]
     return ret
 
 def gen_c_ret_type(t):
@@ -283,7 +286,18 @@ def gen_py_paramlist(params):
         if p.ptype == 's':
             ret += "PyUnicode_FromString(" + p.pname + "), "
         else:
-            ret += "PyLong_FromLong(" + p.pname + "), "
+            if len(p.ptype) > 1:
+                if p.ptype[1] == 'u':
+                    unsigned = "Unsigned"
+                else:
+                    raise Exception("Unknown type spec \"" + p.ptype + "\"")
+            else:
+                unsigned = ""
+                
+            if p.ptype[0] == 'l':
+                ret += "PyLong_From" + unsigned + "LongLong(" + p.pname + "), "
+            else:
+                ret += "PyLong_From" + unsigned + "Long(" + p.pname + "), "
 
     return ret
     
@@ -329,16 +343,22 @@ def gen_dpi_bfm_imp_tf_impl(tf : tf_decl):
         ret += tf.tf_name() + "(int id, " + gen_c_paramlist(tf.params) + ") {\n"
     else:
         ret += tf.tf_name() + "(int id) {\n"
-        
-    ret += "    PyObject *hpi = PyImport_ImportModule(\"hpi\");\n";
-    ret += "    PyObject *bfm_list = PyObject_GetAttrString(hpi, \"bfm_list\");\n"
-    ret += "    PyObject *bfm = PyList_GetItem(bfm_list, id);\n"
-    ret += "    PyObject *yield = PyObject_GetAttrString(hpi, \"int_thread_yield\");\n"
+
+    ret += "    if (!prv_hpi) {\n"
+    ret += "        prv_hpi = PyImport_ImportModule(\"hpi\");\n";
+    ret += "        prv_bfm_list = PyObject_GetAttrString(prv_hpi, \"bfm_list\");\n"
+    ret += "    }\n"
+    ret += "    PyObject *bfm = PyList_GetItem(prv_bfm_list, id);\n"
+#    ret += "    PyObject *yield = PyObject_GetAttrString(hpi, \"int_thread_yield\");\n"
     ret += "    // TODO: pass arguments\n"
-    ret += "    PyObject_CallMethodObjArgs(bfm, PyUnicode_FromString(\"" + tf.fname + "\"), ";
+    ret += "    PyObject *result = PyObject_CallMethodObjArgs(bfm, PyUnicode_FromString(\"" + tf.fname + "\"), ";
+    ret += gen_py_paramlist(tf.params) ;
     ret += "0);\n"
-    ret += "    PyObject_CallFunctionObjArgs(yield, 0);\n"
-    ret += "    Py_DECREF(hpi);\n";
+    ret += "    if (!result) {\n"
+    ret += "        PyErr_Print();\n"
+    ret += "    }\n"
+#    ret += "    PyObject_CallFunctionObjArgs(yield, 0);\n"
+#    ret += "    Py_DECREF(hpi);\n";
     ret += "    return 0;\n"
     
     # TODO: call Python side
@@ -511,6 +531,13 @@ def gen_export_trampoline_switch():
 def gen_dpi(args):
     if args.o == None:
         args.o = "pyhpi_dpi.c"
+        
+    # Load up modules that contain DPI tasks
+    if args.m != None:
+        print("loading modules")
+        for m in args.m:
+            print("loading " + str(m))
+            __import__(m)        
 
     template_params = {}
     template_params['filename'] = os.path.basename(args.o)

@@ -4,6 +4,7 @@
 #* BFM registration decorators and methods
 #****************************************************************************
 from hpi.bfm_info import bfm_info
+from hpi.scheduler import int_thread_yield
 
 try:
     import hpi_e
@@ -21,8 +22,11 @@ tf_global_list = []
 entry_list = {}
 
 def entry(ent):
+    global entry_list
     print("Register entry \"" + ent.__name__ + "\"")
     entry_list[ent.__name__] = ent
+    
+    print("entry_list.size==" + str(len(entry_list.keys())))
 
 def get_bfm_info(tname : str) -> bfm_info:
     if tname in bfm_type_map.keys():
@@ -109,7 +113,6 @@ class import_task():
     def __call__(self, func):
         fullname = func.__qualname__
         
-        
         fi = func.__code__
         
         locals_idx = fullname.find("<locals>")
@@ -143,7 +146,12 @@ class import_task():
             tf.module = func.__module__
             tf_global_list.append(tf)
 
-        return func
+        def func_w(*args):
+            func(*args)
+            # Run the thread scheduler to allow newly-unblocked threads to run
+            int_thread_yield()
+            
+        return func_w
 
 # An export_task decorator is specified on a task that will
 # forward to a task implemented by the HDL environment. No
@@ -242,6 +250,7 @@ class import_func():
         return func
     
 def register_bfm(tname : str, iname : str, id : int):
+    print("--> register_bfm: " + tname + " " + iname)
     if tname not in bfm_type_map.keys():
         print("Error: BFM type \"" + tname + "\" is not registered")
         return -1
@@ -255,5 +264,6 @@ def register_bfm(tname : str, iname : str, id : int):
     bfm_inst_map[iname] = inst
     bfm_list.append(inst)
     
+    print("<-- register_bfm: " + tname + " " + iname)
     return id
 
