@@ -17,6 +17,36 @@ from hpi.rgy import tf_decl
 from string import Template
 from hpi.bfm_info import bfm_info
 
+class content():
+    
+    def __init__(self, ind=""):
+        self.val = ""
+        self.ind = ind
+        
+    def inc_ind(self):
+        self.ind += "    "
+
+    def dec_ind(self):
+        if len(self.ind) < 4:
+            raise Exception("lost indent")
+        self.ind = self.ind[:len(self.ind)-4]
+
+    def println(self, s):
+        self.val += self.ind + s + "\n"
+        
+    def append(self, s):
+        self.val += s
+        
+    def __call__(self):
+        return self.val
+    
+    def trunc(self, amt):
+        self.val = self.val[:len(self.val)-amt]
+        
+    def __iadd__(self, s):
+        self.val += s
+    
+
 pyhpi_dpi_template = '''
 /****************************************************************************
  * ${filename}
@@ -75,9 +105,25 @@ static PyObject *set_context(PyObject *self, PyObject *args) {
     return PyLong_FromLong(id);
 }
 
+static PyObject *export_trampoline(PyObject *self, PyObject *args) {
+    int bfm_id, tf_id, ctxt;
+    PyObject *args_o;
+
+    if (!PyArg_ParseTuple(args, "iiiO", &bfm_id, &tf_id, &ctxt, &args_o)) {
+        return 0;
+    }
+
+    svSetScope(prv_scope_list[ctxt]);
+
+${export_trampoline_switch}
+
+    return PyLong_FromLong(ctxt);
+}
+
 // Python module initialization table
 static PyMethodDef hpi_exp_methods[] = {
     {"set_context", &set_context, METH_VARARGS, ""},
+    {"export_trampoline", &export_trampoline, METH_VARARGS, ""},
 ${hpi_method_table_entries}
     { 0, 0, 0, 0}
 };
@@ -332,6 +378,27 @@ def gen_py_argparse(params : [tf_param]):
     ret += "    }\n" 
     return ret;
 
+def gen_py_argparse_c(cnt, params : [tf_param]):
+    cnt.append(cnt.ind + "if (!PyArg_ParseTuple(args_o, \"")
+    
+    for p in params:
+        cnt.append(p.ptype[0])
+        
+    cnt.append("\", ")
+
+    for p in params:
+        cnt.append("&" + p.pname + ", ")
+   
+    # Trim the last comma
+    cnt.trunc(2)
+   
+    cnt.append(")) {\n")
+    cnt.inc_ind()
+    cnt.println("return 0;")
+    cnt.dec_ind()
+    cnt.println("}")
+
+
 def gen_dpi_bfm_exp_tf_impl(tf : tf_decl):
     ret = "PyObject *" + tf.tf_name() + "_py(PyObject *self, PyObject *args) {\n"
     ret += "    unsigned int id;\n"
@@ -389,6 +456,57 @@ def gen_dpi_tf_impl():
             ret += gen_dpi_bfm_tf_impl(tf)
 
     return ret
+
+def gen_export_trampoline_switch():
+    ret = content("    ")
+    
+    ret.println("switch(bfm_id) {")
+    ret.inc_ind()
+    for bfm_name in hpi.rgy.bfm_type_map.keys():
+        info = hpi.rgy.bfm_type_map[bfm_name]
+        
+        ret.println("case " + str(info.bfm_id) + ": { // " + bfm_name)
+        ret.inc_ind()
+        ret.println("switch (tf_id) {")
+        ret.inc_ind()
+        for tf in info.tf_list:
+            if not tf.is_imp:
+                ret.println("case " + str(tf.tf_id) + ": { // TF " + tf.tf_name())
+                ret.inc_ind()
+                if len(tf.params) != 0:
+                    for p in tf.params:
+                        ret.println(gen_dpi_declare_param_var(p))
+                    gen_py_argparse_c(ret, tf.params)
+                if len(tf.params) == 0:
+                    ret.println(tf.tf_name() + "();")
+                else:
+                    ret.append(ret.ind + tf.tf_name() + "(")
+                    for p in tf.params:
+                        ret.append(p.pname + ", ")
+                        ret.trunc(2)# = ret[:len(ret)-2]
+                        ret.append(");\n")
+                        
+                ret.dec_ind()
+                ret.println("} break;")
+        ret.println("default:")
+        ret.inc_ind()
+        ret.println("fprintf(stdout, \"Error: unknown TF id %d in BFM %d\\n\", tf_id, bfm_id);")
+        ret.println("break;")
+        ret.dec_ind()
+        ret.dec_ind()
+        ret.println("}") # Closing brace for TF switch statement
+        ret.dec_ind()
+        ret.println("} break;") # Break for BFM-id switch
+      
+    ret.println("default:")
+    ret.inc_ind()
+    ret.println("fprintf(stdout, \"Error: unknown BFM ID %d\\n\", bfm_id);")
+    ret.println("break;")
+    ret.dec_ind()
+    ret.println("}")
+    ret.dec_ind()
+    
+    return ret() 
     
 def gen_dpi(args):
     if args.o == None:
@@ -400,6 +518,7 @@ def gen_dpi(args):
     template_params['hpi_method_table_entries'] = gen_hpi_method_table_entries()
     template_params['dpi_tf_impl'] = gen_dpi_tf_impl()
     template_params['command'] = "TODO"
+    template_params['export_trampoline_switch'] = gen_export_trampoline_switch()
     
     fh = open(args.o, "w")
     template = Template(pyhpi_dpi_template)

@@ -6,6 +6,12 @@ Created on May 31, 2019
 
 from hpi.rgy import bfm_type_map, bfm_wrapper_type
 
+#********************************************************************
+#* gen_bfm_wrapper()
+#*
+#* Generates a wrapper for a pyHPI BFM from a template registered
+#* with the Python BFM class
+#********************************************************************
 def gen_bfm_wrapper(args):
     
     if args.bfm not in bfm_type_map.keys():
@@ -33,7 +39,7 @@ def gen_bfm_wrapper(args):
     wrapper_t = bfm_wrappers[bfm_type]
     
     if callable(wrapper_t):
-        print("Calling wrapper")
+        # If the wrapper object is callable, assume the string comes from calling it
         wrapper_t = wrapper_t()
 
     with open(args.o, "w") as f:

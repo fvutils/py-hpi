@@ -29,7 +29,7 @@ def get_bfm_info(tname : str) -> bfm_info:
         return bfm_type_map[tname]
     else:
         print("Adding BFM \"" + tname + "\" to bfm_type_map")
-        info = bfm_info(tname)
+        info = bfm_info(tname, len(bfm_type_map))
         bfm_type_map[tname] = info
         return info
 
@@ -49,12 +49,20 @@ class tf_param():
 class tf_decl():
     
     def __init__(self, 
+                 bfm,
                  is_imp : bool,
                  is_task : bool,
                  fname : str, 
                  rtype : str,
                  param_names : [str], 
                  param_types : str):
+        self.bfm = bfm
+        if bfm != None:
+            self.bfm_id = bfm.bfm_id
+            self.tf_id = len(bfm.tf_list)
+        else:
+            self.bfm_id = -1
+            self.tf_id = 0 # TODO
         self.is_imp = is_imp
         self.is_task = is_task
         self.fname = fname
@@ -93,7 +101,7 @@ class tf_decl():
         
 # An import task decorator is specified on a method that will
 # be called by the HDL environment
-class import_task(tf_decl):
+class import_task():
     
     def __init__(self, tinfo : str = ""):
         self.tinfo = tinfo
@@ -114,6 +122,7 @@ class import_task(tf_decl):
             bfm_name = fullname[:dot_idx]
             info = get_bfm_info(bfm_name)
             tf = tf_decl(
+                info,
                 True,
                 True,
                 func.__name__,
@@ -124,6 +133,7 @@ class import_task(tf_decl):
             tf.bfm = info
         else:
             tf = tf_decl(
+                None,
                 True,
                 False,
                 func.__name__,
@@ -142,7 +152,7 @@ class import_task(tf_decl):
 #
 # A class method shall be declared with self as the first
 # parameter, just as with 
-class export_task(tf_decl):
+class export_task():
     
     def __init__(self, tinfo : str = ""):
         print("export_task_init")
@@ -163,6 +173,7 @@ class export_task(tf_decl):
             bfm_name = fullname[:dot_idx]
             info = get_bfm_info(bfm_name)
             tf = tf_decl(
+                info,
                 False,
                 True,
                 bfm_name + "_" + func.__name__,
@@ -171,19 +182,24 @@ class export_task(tf_decl):
                 self.tinfo)
             print("Add export " + func.__name__ + " to bfm " + bfm_name)
             info.tf_list.append(tf)
+            tinfo = self.tinfo
             
             def export_task_w(self,*args):
-                params = [self.ctxt]
-                for a in args:
-                    params.append(a)
-                # TODO: set appropriate context
-                eval("hpi_e." + tf.tf_name() + "(*params)")
+		# Assume hpi_e contains a <call_trampoline> function?
+		# call_trampoline(tf_name, self.ctxt, tinfo, params)
+                import hpi_e
+                hpi_e.export_trampoline(tf.bfm_id, tf.tf_id, self.ctxt, args)
+#                params = [self.ctxt]
+#                for a in args:
+#                    params.append(a)
+#                # TODO: set appropriate context
+#                eval("hpi_e." + tf.tf_name() + "(*params)")
                 
             return export_task_w
         else:
             raise Exception("Cannot declare global method an export task")
 
-class import_func(tf_decl):
+class import_func():
     
     def __init__(self, rtype : str, tinfo : str):
         self.tinfo = tinfo
@@ -204,6 +220,7 @@ class import_func(tf_decl):
             api_name = fullname[:dot_idx] + "_" + func.__name__
             info = get_bfm_info(api_name)
             tf = tf_decl(
+                info,
                 True,
                 False,
                 api_name + "_" + func.__name__,
@@ -213,6 +230,7 @@ class import_func(tf_decl):
             info.tf_list.append(tf)
         else:
             tf = tf_decl(
+                None,
                 True,
                 False,
                 func.__name__,

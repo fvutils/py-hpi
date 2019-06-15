@@ -13,8 +13,9 @@ except:
 
 class bfm_info(object):
     
-    def __init__(self, tname : str):
+    def __init__(self, tname, bfm_id):
         self.tname = tname
+        self.bfm_id = bfm_id
         self.cls = None
         self.tf_list = []
 
