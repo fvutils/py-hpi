@@ -9,14 +9,16 @@ dummy_sem = hpi.semaphore()
 def thread_func_1():
   print("thread_func_1")
   my_bfm = hpi.rgy.bfm_list[0]
-  for i in range(1000):
+  for i in range(100000):
     my_bfm.xfer(i*2)
+  print("thread1: Done")
 
 def thread_func_2():
   print("thread_func_2")
   my_bfm = hpi.rgy.bfm_list[1]
-  for i in range(1000):
+  for i in range(100000):
     my_bfm.xfer(i)
+  print("thread1: Done")
 
 def lambda_accept(c):
   c()
@@ -25,11 +27,9 @@ def lambda_accept(c):
 def run_my_tb():
     print("run_my_tb - bfms: " + str(len(hpi.rgy.bfm_list)))
 
-    hpi.raise_objection()
     with hpi.fork() as f:
       f.task(lambda: thread_func_1());
       f.task(lambda: thread_func_2());
 
     print("end of run_my_tb");
-    hpi.drop_objection()
 

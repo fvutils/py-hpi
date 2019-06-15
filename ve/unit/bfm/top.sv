@@ -41,10 +41,10 @@ assign ack_2 = req_r_2;
 
 always @(posedge clk) begin
   if (req_1 && ack_1) begin
-    $display("ack_1=%0d data_1=%0d", ack_1, data_1);
+//    $display("ack_1=%0d data_1=%0d", ack_1, data_1);
   end
   if (req_2 && ack_2) begin
-    $display("ack_2=%0d data_2=%0d", ack_2, data_2);
+//    $display("ack_2=%0d data_2=%0d", ack_2, data_2);
   end
 end
 

@@ -43,5 +43,5 @@ if test $? -ne 0; then exit 1; fi
 #if test $? -ne 0; then exit 1; fi
 
 # Remove generated files
-rm *.cpp *.c simple_bfm.sv
-rm -rf obj_dir __pycache__
+#rm *.cpp *.c simple_bfm.sv
+#rm -rf obj_dir __pycache__
