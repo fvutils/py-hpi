@@ -1,5 +1,7 @@
 # Py-HPI
 
+Note: ongoing work is continuing with the PyBFMS project
+
 The Python HDL Procedural Interface (py-HPI) implements a mechanism for Python scripts and
 HDL (SystemVerilog and eventually Verilog, VHDL) to interact at the procedural level. 
 This means that Python can call SystemVerilog tasks, and SystemVerilog can call
